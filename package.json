@@ -1,0 +1,92 @@
+{
+  "name": "@vaadin-component-factory/vcf-element",
+  "version": "1.0.0",
+  "description": "--elementdescription--",
+  "main": "dist/vcf-element.js",
+  "module": "dist/vcf-element.js",
+  "author": "Vaadin Ltd",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vaadin-component-factory/vcf-element.git"
+  },
+  "keywords": [
+    "Vaadin",
+    "vaadin-component-factory",
+    "web-component",
+    "vcf-element",
+    "lit-element"
+  ],
+  "scripts": {
+    "start": "run-p build:watch start:dev",
+    "start:dev": "wds --app-index demo/index.html --node-resolve --open --watch",
+    "prestart": "npm run analyze",
+    "analyze": "wca analyze \"src/**/*.ts\" --outFile demo/custom-elements.json",
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "lint": "run-s lint:**",
+    "format": "run-s format:**",
+    "lint:eslint": "eslint --ext .ts,.html . --ignore-path .gitignore",
+    "format:eslint": "eslint --ext .ts,.html . --fix --ignore-path .gitignore",
+    "lint:prettier": "prettier \"**/*.js\" \"**/*.ts\" --check --ignore-path .gitignore",
+    "format:prettier": "prettier \"**/*.js\" \"**/*.ts\" --write --ignore-path .gitignore",
+    "test": "run-s build \"web-test-runner --coverage\"",
+    "test:watch": "web-test-runner --watch",
+    "postinstall": "node util/init.js",
+    "publish": "node util/publish.js",
+    "prepublish": "tsc"
+  },
+  "dependencies": {
+    "@vaadin/element-base": "^0.4.0",
+    "@vaadin/vaadin-lumo-styles": "^1.6.1",
+    "lit-element": "^2.2.1",
+    "lit-html": "^1.1.2"
+  },
+  "devDependencies": {
+    "@open-wc/eslint-config": "^4.0.0",
+    "@open-wc/testing": "^2.0.0",
+    "@types/node": "13.11.1",
+    "@typescript-eslint/eslint-plugin": "^2.20.0",
+    "@typescript-eslint/parser": "^2.20.0",
+    "@vaadin-component-factory/vcf-anchor-nav": "^1.1.0",
+    "@vaadin-component-factory/vcf-element-util": "0.2.1-beta",
+    "@web/dev-server": "^0.0.12",
+    "@web/test-runner": "^0.7.41",
+    "@webcomponents/webcomponentsjs": "^2.0.0",
+    "api-viewer-element": "^0.4.4",
+    "eslint": "^6.1.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-import": "^2.22.1",
+    "husky": "^1.0.0",
+    "lint-staged": "^10.0.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^2.0.4",
+    "tslib": "^1.11.0",
+    "typescript": "~4.0.3",
+    "web-component-analyzer": "^1.1.6"
+  },
+  "eslintConfig": {
+    "extends": [
+      "@open-wc/eslint-config",
+      "eslint-config-prettier"
+    ]
+  },
+  "prettier": {
+    "singleQuote": true,
+    "arrowParens": "avoid",
+    "trailingComma": "none",
+    "printWidth": 120
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write",
+      "git add"
+    ]
+  }
+}
