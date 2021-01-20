@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes" />
+    <title>vaadin-slider demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet" />
+    <script dev src="../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+    <script dev type="module" src="demo.js"></script>
+    <custom-style>
+      <style is="custom-style" include="demo-pages-shared-styles lumo-typography">
+        body {
+          font-family: var(--lumo-font-family);
+          padding: 0;
+        }
+
+        h1.main {
+          display: flex;
+          align-items: center;
+          padding: 0 0 var(--lumo-space-l) var(--lumo-space-m);
+          margin-top: var(--lumo-space-xl);
+        }
+
+        h1.main:hover #javaApi a {
+          color: var(--lumo-primary-text-color);
+        }
+
+        code {
+          display: inline-block;
+          padding: 2px 4px;
+          background-color: var(--lumo-shade-10pct);
+          border-radius: var(--lumo-border-radius);
+          font-family: 'Fira Code', monospace;
+        }
+
+        api-docs,
+        api-demo {
+          max-width: 1000px;
+          padding: 0;
+          margin: 0 var(--lumo-space-m) calc(2 * var(--lumo-space-l)) var(--lumo-space-m);
+        }
+
+        api-docs::part(header-title),
+        api-demo::part(header-title),
+        api-docs::part(md-code),
+        api-demo::part(md-code) {
+          font-family: 'Fira Code', monospace;
+          font-weight: bold;
+        }
+
+        api-demo {
+          margin: 0;
+        }
+
+        api-demo::part(header) {
+          display: none;
+        }
+
+        api-demo::part(demo-output) {
+          border-top: none;
+        }
+
+        vcf-anchor-nav {
+          opacity: 1;
+          transition: opacity 0.5s;
+          --anchor-nav-inner-max-width: 1000px;
+        }
+
+        vcf-anchor-nav::part(tabs) {
+          box-shadow: inset 0 -1px 0 0 var(--lumo-contrast-20pct);
+          z-index: 2;
+        }
+
+        vcf-anchor-nav-section {
+          height: auto;
+          background-color: var(--lumo-base-color);
+        }
+
+        #elementName {
+          padding: 0;
+          border-radius: 0;
+          background-color: transparent;
+        }
+
+        #elementName span {
+          display: inline-block;
+          font-size: var(--lumo-size-m);
+          padding: var(--lumo-space-xs);
+          vertical-align: middle;
+        }
+
+        #javaApi {
+          font-size: var(--lumo-font-size-m);
+          margin: 0 0 0 auto;
+          display: inline-flex;
+          align-items: center;
+        }
+
+        #javaApi code {
+          display: inline-block;
+          font-size: var(--lumo-font-size-m);
+          margin-right: var(--lumo-space-m);
+          background: none;
+        }
+
+        #javaApi a {
+          color: var(--lumo-secondary-text-color);
+          transition: text-decoration 0.5s, color 0.5s;
+          font-family: var(--lumo-font-family);
+          font-weight: normal;
+          margin-right: var(--lumo-space-m);
+          text-decoration: none;
+        }
+
+        #javaApi a:hover {
+          text-decoration: underline;
+        }
+
+        .hidden,
+        .hidden * {
+          opacity: 0;
+        }
+
+        @media only screen and (max-width: 768px) {
+          h1.main {
+            align-items: flex-start;
+            flex-direction: column;
+          }
+
+          #elementName,
+          #elementName span {
+            font-size: var(--lumo-font-size-xl);
+          }
+
+          #javaApi {
+            margin: 0;
+            font-size: var(--lumo-font-size-xs);
+          }
+
+          #javaApi code {
+            font-size: var(--lumo-font-size-xxs);
+          }
+        }
+
+      </style>
+    </custom-style>
+  </head>
+  <body>
+    <vcf-anchor-nav fullscreen theme="expand-last" class="hidden">
+      <h1 slot="header" class="main">
+        <code id="elementName"><span>&lt;</span>vaadin-slider<span>&gt;</span></code>
+        <span id="javaApi">
+          <code>-></code>
+          <a href="https://vaadin.com/directory/component/VaadinSlider" title="The server-side (Java) API of this web component for the Vaadin Platform">VaadinSlider</a>
+        </span>
+      </h1>
+      <api-docs id="API" slot="header"></api-docs>
+      <vcf-anchor-nav-section name="Demo 1">
+        <api-demo></api-demo>
+      </vcf-anchor-nav-section>
+      <vcf-anchor-nav-section name="Demo 2">
+        <api-demo></api-demo>
+      </vcf-anchor-nav-section>
+      <vcf-anchor-nav-section name="Demo 3">
+        <api-demo></api-demo>
+      </vcf-anchor-nav-section>
+    </vcf-anchor-nav>
+  </body>
+</html>
