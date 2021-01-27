@@ -20,6 +20,7 @@
 /dist/
 /out-tsc/
 /src-js/
+/build/
 
 # dev
 /test-element/
