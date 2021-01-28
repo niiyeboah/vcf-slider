@@ -1,5 +1,4 @@
-import { html, css, query, customElement, property, internalProperty, PropertyValues } from 'lit-element';
-import { VaadinElement } from '@vaadin/element-base';
+import { html, css, query, customElement, property, internalProperty, PropertyValues, LitElement } from 'lit-element';
 
 type PointerEvent = MouseEvent | TouchEvent;
 const TOUCH_DEVICE = (() => {
@@ -20,7 +19,7 @@ const TOUCH_DEVICE = (() => {
  * @csspart knob-n - Nth knob element.
  */
 @customElement('vaadin-slider')
-export class VaadinSlider extends VaadinElement {
+export class VaadinSlider extends LitElement {
   @property({ type: Boolean, reflect: true }) labels = true;
   @property({ type: Number }) value: number | number[] = 0;
   @property({ type: Number }) ranges = 0;
