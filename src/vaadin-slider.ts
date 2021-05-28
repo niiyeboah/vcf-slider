@@ -36,10 +36,6 @@ export class VaadinSlider extends LitElement {
   @query('[part="line"]') private line?: HTMLElement;
   @query('[part="line-color"]') private lineColor?: HTMLElement;
 
-  static get is() {
-    return 'vaadin-slider';
-  }
-
   static get version() {
     return '1.0.0';
   }
@@ -199,7 +195,7 @@ export class VaadinSlider extends LitElement {
     const knob = this.knobElement(i) as HTMLElement;
     if (knob) {
       const knobWidth = this.getBounds(knob).width;
-      const position = (values[i] / (max - min)) * lineWidth - knobWidth / 2;
+      const position = ((values[i] - min) / (max - min)) * lineWidth - knobWidth / 2;
       knob.style.left = `${position}px`;
     }
   }
@@ -210,7 +206,7 @@ export class VaadinSlider extends LitElement {
     const label = this.labelElement(i) as HTMLElement;
     if (label) {
       const labelWidth = this.getBounds(label).width;
-      const position = (values[i] / (max - min)) * lineWidth - labelWidth / 2;
+      const position = ((values[i] - min) / (max - min)) * lineWidth - labelWidth / 2;
       label.style.left = `${position}px`;
     }
   }
