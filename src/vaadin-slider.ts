@@ -155,7 +155,11 @@ export class VaadinSlider extends LitElement {
         }
         case 'value': {
           this.setLabelValues();
-          this.knobIndexes.forEach(i => this.setLabelPosition(i));
+          this.knobIndexes.forEach(i => {
+            this.setLabelPosition(i);
+            this.setKnobPostion(i);
+            this.setLineColors();
+          });
           break;
         }
       }
@@ -348,15 +352,162 @@ export class VaadinSlider extends LitElement {
     if (knobs && knobsContainer) {
       knobsContainer.innerHTML = '';
       knobIndexes.map(i => {
-        const knobElement = document.createElement('div');
-        const labelElement = document.createElement('div');
-        if (i % 2) knobElement.classList.add('alternate');
-        knobElement.setAttribute('part', `knob knob-${i}`);
-        knobElement.addEventListener('mousedown', this.startDrag);
-        labelElement.setAttribute('part', `label label-${i}`);
-        knobsContainer?.appendChild(knobElement);
-        knobsContainer?.appendChild(labelElement);
+        knobsContainer?.appendChild(this.createKnobElement(i));
+        knobsContainer?.appendChild(this.createKnobLabelElement(i));
       });
+    }
+  }
+
+  private createKnobElement(knobIndex: number): HTMLDivElement {
+    const knobElement = document.createElement('div');
+    knobElement.tabIndex = knobIndex + 1;
+    knobElement.setAttribute('role', 'slider');
+    knobElement.setAttribute('part', `knob knob-${knobIndex}`);
+    knobElement.addEventListener('mousedown', this.startDrag);
+    if (knobIndex % 2) knobElement.classList.add('alternate');
+    knobElement.addEventListener('keydown', event => this.handleKnobKeyDownEvent(event, knobIndex));
+
+    return knobElement;
+  }
+
+  private createKnobLabelElement(knobIndex: number): HTMLDivElement {
+    const labelElement = document.createElement('div');
+    labelElement.setAttribute('part', `label label-${knobIndex}`);
+    return labelElement;
+  }
+
+  private decreaseKnobValueByStep(knobIndex: number) {
+    if (this.knobs === 1) {
+      // Use the biggest number between min value and requested value.
+      this.value = Math.max(this.min, (this.value as number) - this.step);
+    } else {
+      const oldValueArray = [...(this.value as number[])];
+      const oldValue = (this.value as number[])[knobIndex];
+
+      if (knobIndex === 0) {
+        // Use the biggest number between min value and requested value.
+        (this.value as number[])[knobIndex] = Math.max(this.min, oldValue - this.step);
+      } else {
+        let neighboringValue = (this.value as number[])[knobIndex - 1];
+        const neighborPrecisionOffset = neighboringValue % this.step;
+
+        if (neighborPrecisionOffset) {
+          neighboringValue += this.step - neighborPrecisionOffset;
+        }
+        // Use the biggest number between min value, requested value, and the neighboring value.
+        (this.value as number[])[knobIndex] = Math.max(this.min, oldValue - this.step, neighboringValue);
+      }
+      this.requestUpdate('value', oldValueArray);
+    }
+  }
+
+  private increaseKnobValueByStep(knobIndex: number) {
+    if (this.knobs === 1) {
+      // Use the smallest number between max value and requested value.
+      this.value = Math.min(this.max, (this.value as number) + this.step);
+    } else {
+      const oldValueArray = [...(this.value as number[])];
+      const oldValue = (this.value as number[])[knobIndex];
+
+      if (knobIndex === this.knobs - 1) {
+        // Use the smallest number between max value and requested value.
+        (this.value as number[])[knobIndex] = Math.min(this.max, oldValue + this.step);
+      } else {
+        let neighboringValue = (this.value as number[])[knobIndex + 1];
+        const neighborPrecisionOffset = neighboringValue % this.step;
+
+        if (neighborPrecisionOffset) {
+          neighboringValue -= neighborPrecisionOffset;
+        }
+        // Use the smallest number between max value, requested value, and the neighboring value.
+        (this.value as number[])[knobIndex] = Math.min(this.max, oldValue + this.step, neighboringValue);
+      }
+      this.requestUpdate('value', oldValueArray);
+    }
+  }
+
+  private decreaseKnobValueToLowest(knobIndex: number) {
+    if (this.knobs === 1) {
+      this.value = this.min;
+    } else {
+      const oldValueArray = [...(this.value as number[])];
+
+      if (knobIndex === 0) {
+        (this.value as number[])[knobIndex] = this.min;
+      } else {
+        let neighboringValue = (this.value as number[])[knobIndex - 1];
+        const neighborPrecisionOffset = neighboringValue % this.step;
+
+        if (neighborPrecisionOffset) {
+          neighboringValue += this.step - neighborPrecisionOffset;
+        }
+        // Use the biggest number between min value and the neighboring value.
+        (this.value as number[])[knobIndex] = Math.max(this.min, neighboringValue);
+      }
+      this.requestUpdate('value', oldValueArray);
+    }
+  }
+
+  private increaseKnobValueToHighest(knobIndex: number) {
+    if (this.knobs === 1) {
+      this.value = this.max;
+    } else {
+      const oldValueArray = [...(this.value as number[])];
+
+      if (knobIndex === this.knobs - 1) {
+        (this.value as number[])[knobIndex] = this.max;
+      } else {
+        let neighboringValue = (this.value as number[])[knobIndex + 1];
+        const neighborPrecisionOffset = neighboringValue % this.step;
+
+        if (neighborPrecisionOffset) {
+          neighboringValue -= neighborPrecisionOffset;
+        }
+        // Use the smallest number between max value and the neighboring value.
+        (this.value as number[])[knobIndex] = Math.min(this.max, neighboringValue);
+      }
+      this.requestUpdate('value', oldValueArray);
+    }
+  }
+
+  private handleKnobKeyDownEvent(event: KeyboardEvent, knobIndex: number) {
+    let flag = false;
+    const key = event.key || event.keyCode;
+    switch (key) {
+      case 'ArrowLeft':
+      case 37:
+      case 'ArrowDown':
+      case 40:
+        this.decreaseKnobValueByStep(knobIndex);
+        flag = true;
+        break;
+
+      case 'ArrowRight':
+      case 39:
+      case 'ArrowUp':
+      case 38:
+        this.increaseKnobValueByStep(knobIndex);
+        flag = true;
+        break;
+
+      case 'Home':
+      case 36:
+        this.decreaseKnobValueToLowest(knobIndex);
+        flag = true;
+        break;
+
+      case 'End':
+      case 35:
+        this.increaseKnobValueToHighest(knobIndex);
+        flag = true;
+        break;
+
+      default:
+        break;
+    }
+    if (flag) {
+      event.preventDefault();
+      event.stopPropagation();
     }
   }
 
