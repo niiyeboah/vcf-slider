@@ -348,8 +348,8 @@ export class VaadinSlider extends LitElement {
     if (knobs && knobsContainer) {
       knobsContainer.innerHTML = '';
       knobIndexes.map(i => {
-        knobsContainer?.appendChild(this.createKnobElement(i));
-        knobsContainer?.appendChild(this.createKnobLabelElement(i));
+        knobsContainer.appendChild(this.createKnobElement(i));
+        knobsContainer.appendChild(this.createKnobLabelElement(i));
       });
     }
   }
@@ -362,7 +362,6 @@ export class VaadinSlider extends LitElement {
     knobElement.addEventListener('mousedown', this.startDrag);
     if (knobIndex % 2) knobElement.classList.add('alternate');
     knobElement.addEventListener('keydown', event => this.handleKnobKeyDownEvent(event, knobIndex));
-
     return knobElement;
   }
 
@@ -372,98 +371,90 @@ export class VaadinSlider extends LitElement {
     return labelElement;
   }
 
-  private decreaseKnobValueByStep(knobIndex: number) {
+  private getPrevNeighborValue(knobIndex: number) {
+    const { values, step } = this;
+    let neighboringValue;
+    neighboringValue = values[knobIndex - 1];
+    const neighborPrecisionOffset = neighboringValue % step;
+    if (neighborPrecisionOffset) neighboringValue += step - neighborPrecisionOffset;
+    return neighboringValue;
+  }
+
+  private getNextNeighborValue(knobIndex: number) {
+    const { values, step } = this;
+    let neighboringValue;
+    neighboringValue = values[knobIndex + 1];
+    const neighborPrecisionOffset = neighboringValue % step;
+    if (neighborPrecisionOffset) neighboringValue -= neighborPrecisionOffset;
+    return neighboringValue;
+  }
+
+  private decreaseKnobValue({ knobIndex, single, first = this.min, other }: KnobValueOptions) {
     if (this.knobs === 1) {
-      // Use the biggest number between min value and requested value.
-      this.value = Math.max(this.min, (this.value as number) - this.step);
+      this.value = single;
     } else {
-      const oldValueArray = [...(this.value as number[])];
-      const oldValue = (this.value as number[])[knobIndex];
-
-      if (knobIndex === 0) {
-        // Use the biggest number between min value and requested value.
-        (this.value as number[])[knobIndex] = Math.max(this.min, oldValue - this.step);
-      } else {
-        let neighboringValue = (this.value as number[])[knobIndex - 1];
-        const neighborPrecisionOffset = neighboringValue % this.step;
-
-        if (neighborPrecisionOffset) {
-          neighboringValue += this.step - neighborPrecisionOffset;
-        }
-        // Use the biggest number between min value, requested value, and the neighboring value.
-        (this.value as number[])[knobIndex] = Math.max(this.min, oldValue - this.step, neighboringValue);
-      }
-      this.requestUpdate('value', oldValueArray);
+      if (knobIndex === 0) this.values[knobIndex] = first;
+      else this.values[knobIndex] = other;
+      this.requestUpdate('value', [...this.values]);
     }
   }
 
-  private increaseKnobValueByStep(knobIndex: number) {
+  private increaseKnobValue({ knobIndex, single, last = this.max, other }: KnobValueOptions) {
     if (this.knobs === 1) {
-      // Use the smallest number between max value and requested value.
-      this.value = Math.min(this.max, (this.value as number) + this.step);
+      this.value = single;
     } else {
-      const oldValueArray = [...(this.value as number[])];
-      const oldValue = (this.value as number[])[knobIndex];
-
-      if (knobIndex === this.knobs - 1) {
-        // Use the smallest number between max value and requested value.
-        (this.value as number[])[knobIndex] = Math.min(this.max, oldValue + this.step);
-      } else {
-        let neighboringValue = (this.value as number[])[knobIndex + 1];
-        const neighborPrecisionOffset = neighboringValue % this.step;
-
-        if (neighborPrecisionOffset) {
-          neighboringValue -= neighborPrecisionOffset;
-        }
-        // Use the smallest number between max value, requested value, and the neighboring value.
-        (this.value as number[])[knobIndex] = Math.min(this.max, oldValue + this.step, neighboringValue);
-      }
-      this.requestUpdate('value', oldValueArray);
+      if (knobIndex === this.knobs - 1) this.values[knobIndex] = last;
+      else this.values[knobIndex] = other;
+      this.requestUpdate('value', [...this.values]);
     }
+  }
+
+  private decreaseKnobValueByStep(knobIndex: number) {
+    const { min, values, step } = this;
+    this.decreaseKnobValue({
+      knobIndex,
+      // Use the smallest number between max value and requested value.
+      single: Math.max(min, values[0] - step),
+      // Use the smallest number between max value and requested value.
+      first: Math.max(min, values[0] - step),
+      // Use the smallest number between max value, requested value, and the neighboring value.
+      other: Math.max(min, values[knobIndex] - step, this.getPrevNeighborValue(knobIndex))
+    });
   }
 
   private decreaseKnobValueToLowest(knobIndex: number) {
-    if (this.knobs === 1) {
-      this.value = this.min;
-    } else {
-      const oldValueArray = [...(this.value as number[])];
+    const { min } = this;
+    this.decreaseKnobValue({
+      knobIndex,
+      single: min,
+      first: min,
+      // Use the biggest number between min value and the neighboring value.
+      other: Math.max(min, this.getPrevNeighborValue(knobIndex))
+    });
+  }
 
-      if (knobIndex === 0) {
-        (this.value as number[])[knobIndex] = this.min;
-      } else {
-        let neighboringValue = (this.value as number[])[knobIndex - 1];
-        const neighborPrecisionOffset = neighboringValue % this.step;
-
-        if (neighborPrecisionOffset) {
-          neighboringValue += this.step - neighborPrecisionOffset;
-        }
-        // Use the biggest number between min value and the neighboring value.
-        (this.value as number[])[knobIndex] = Math.max(this.min, neighboringValue);
-      }
-      this.requestUpdate('value', oldValueArray);
-    }
+  private increaseKnobValueByStep(knobIndex: number) {
+    const { step, max, values } = this;
+    this.increaseKnobValue({
+      knobIndex,
+      // Use the smallest number between max value and requested value.
+      single: Math.min(max, values[0] + step),
+      // Use the smallest number between max value and requested value.
+      last: Math.min(max, values[knobIndex] + step),
+      // Use the smallest number between max value, requested value, and the neighboring value.
+      other: Math.min(max, values[knobIndex] + step, this.getNextNeighborValue(knobIndex))
+    });
   }
 
   private increaseKnobValueToHighest(knobIndex: number) {
-    if (this.knobs === 1) {
-      this.value = this.max;
-    } else {
-      const oldValueArray = [...(this.value as number[])];
-
-      if (knobIndex === this.knobs - 1) {
-        (this.value as number[])[knobIndex] = this.max;
-      } else {
-        let neighboringValue = (this.value as number[])[knobIndex + 1];
-        const neighborPrecisionOffset = neighboringValue % this.step;
-
-        if (neighborPrecisionOffset) {
-          neighboringValue -= neighborPrecisionOffset;
-        }
-        // Use the smallest number between max value and the neighboring value.
-        (this.value as number[])[knobIndex] = Math.min(this.max, neighboringValue);
-      }
-      this.requestUpdate('value', oldValueArray);
-    }
+    const { max } = this;
+    this.increaseKnobValue({
+      knobIndex,
+      single: max,
+      last: max,
+      // Use the smallest number between max value and the neighboring value.
+      other: Math.min(this.max, this.getNextNeighborValue(knobIndex))
+    });
   }
 
   private handleKnobKeyDownEvent(event: KeyboardEvent, knobIndex: number) {
@@ -520,4 +511,12 @@ declare global {
   interface HTMLElementTagNameMap {
     'vaadin-slider': VaadinSlider;
   }
+}
+
+interface KnobValueOptions {
+  knobIndex: number;
+  single: number;
+  first?: number;
+  last?: number;
+  other: number;
 }
