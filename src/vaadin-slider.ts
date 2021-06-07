@@ -151,7 +151,11 @@ export class VaadinSlider extends LitElement {
         }
         case 'value': {
           this.setLabelValues();
-          this.knobIndexes.forEach(i => this.setLabelPosition(i));
+          this.knobIndexes.forEach(i => {
+            this.setLabelPosition(i);
+            this.setKnobPostion(i);
+            this.setLineColors();
+          });
           break;
         }
       }
@@ -344,15 +348,153 @@ export class VaadinSlider extends LitElement {
     if (knobs && knobsContainer) {
       knobsContainer.innerHTML = '';
       knobIndexes.map(i => {
-        const knobElement = document.createElement('div');
-        const labelElement = document.createElement('div');
-        if (i % 2) knobElement.classList.add('alternate');
-        knobElement.setAttribute('part', `knob knob-${i}`);
-        knobElement.addEventListener('mousedown', this.startDrag);
-        labelElement.setAttribute('part', `label label-${i}`);
-        knobsContainer?.appendChild(knobElement);
-        knobsContainer?.appendChild(labelElement);
+        knobsContainer.appendChild(this.createKnobElement(i));
+        knobsContainer.appendChild(this.createKnobLabelElement(i));
       });
+    }
+  }
+
+  private createKnobElement(knobIndex: number): HTMLDivElement {
+    const knobElement = document.createElement('div');
+    knobElement.tabIndex = knobIndex + 1;
+    knobElement.setAttribute('role', 'slider');
+    knobElement.setAttribute('part', `knob knob-${knobIndex}`);
+    knobElement.addEventListener('mousedown', this.startDrag);
+    if (knobIndex % 2) knobElement.classList.add('alternate');
+    knobElement.addEventListener('keydown', event => this.handleKnobKeyDownEvent(event, knobIndex));
+    return knobElement;
+  }
+
+  private createKnobLabelElement(knobIndex: number): HTMLDivElement {
+    const labelElement = document.createElement('div');
+    labelElement.setAttribute('part', `label label-${knobIndex}`);
+    return labelElement;
+  }
+
+  private getPrevNeighborValue(knobIndex: number) {
+    const { values, step } = this;
+    let neighboringValue;
+    neighboringValue = values[knobIndex - 1];
+    const neighborPrecisionOffset = neighboringValue % step;
+    if (neighborPrecisionOffset) neighboringValue += step - neighborPrecisionOffset;
+    return neighboringValue;
+  }
+
+  private getNextNeighborValue(knobIndex: number) {
+    const { values, step } = this;
+    let neighboringValue;
+    neighboringValue = values[knobIndex + 1];
+    const neighborPrecisionOffset = neighboringValue % step;
+    if (neighborPrecisionOffset) neighboringValue -= neighborPrecisionOffset;
+    return neighboringValue;
+  }
+
+  private decreaseKnobValue({ knobIndex, single, first = this.min, other }: KnobValueOptions) {
+    if (this.knobs === 1) {
+      this.value = single;
+    } else {
+      if (knobIndex === 0) this.values[knobIndex] = first;
+      else this.values[knobIndex] = other;
+      this.requestUpdate('value', [...this.values]);
+    }
+  }
+
+  private increaseKnobValue({ knobIndex, single, last = this.max, other }: KnobValueOptions) {
+    if (this.knobs === 1) {
+      this.value = single;
+    } else {
+      if (knobIndex === this.knobs - 1) this.values[knobIndex] = last;
+      else this.values[knobIndex] = other;
+      this.requestUpdate('value', [...this.values]);
+    }
+  }
+
+  private decreaseKnobValueByStep(knobIndex: number) {
+    const { min, values, step } = this;
+    this.decreaseKnobValue({
+      knobIndex,
+      // Use the smallest number between max value and requested value.
+      single: Math.max(min, values[0] - step),
+      // Use the smallest number between max value and requested value.
+      first: Math.max(min, values[0] - step),
+      // Use the smallest number between max value, requested value, and the neighboring value.
+      other: Math.max(min, values[knobIndex] - step, this.getPrevNeighborValue(knobIndex))
+    });
+  }
+
+  private decreaseKnobValueToLowest(knobIndex: number) {
+    const { min } = this;
+    this.decreaseKnobValue({
+      knobIndex,
+      single: min,
+      first: min,
+      // Use the biggest number between min value and the neighboring value.
+      other: Math.max(min, this.getPrevNeighborValue(knobIndex))
+    });
+  }
+
+  private increaseKnobValueByStep(knobIndex: number) {
+    const { step, max, values } = this;
+    this.increaseKnobValue({
+      knobIndex,
+      // Use the smallest number between max value and requested value.
+      single: Math.min(max, values[0] + step),
+      // Use the smallest number between max value and requested value.
+      last: Math.min(max, values[knobIndex] + step),
+      // Use the smallest number between max value, requested value, and the neighboring value.
+      other: Math.min(max, values[knobIndex] + step, this.getNextNeighborValue(knobIndex))
+    });
+  }
+
+  private increaseKnobValueToHighest(knobIndex: number) {
+    const { max } = this;
+    this.increaseKnobValue({
+      knobIndex,
+      single: max,
+      last: max,
+      // Use the smallest number between max value and the neighboring value.
+      other: Math.min(this.max, this.getNextNeighborValue(knobIndex))
+    });
+  }
+
+  private handleKnobKeyDownEvent(event: KeyboardEvent, knobIndex: number) {
+    let flag = false;
+    const key = event.key || event.keyCode;
+    switch (key) {
+      case 'ArrowLeft':
+      case 37:
+      case 'ArrowDown':
+      case 40:
+        this.decreaseKnobValueByStep(knobIndex);
+        flag = true;
+        break;
+
+      case 'ArrowRight':
+      case 39:
+      case 'ArrowUp':
+      case 38:
+        this.increaseKnobValueByStep(knobIndex);
+        flag = true;
+        break;
+
+      case 'Home':
+      case 36:
+        this.decreaseKnobValueToLowest(knobIndex);
+        flag = true;
+        break;
+
+      case 'End':
+      case 35:
+        this.increaseKnobValueToHighest(knobIndex);
+        flag = true;
+        break;
+
+      default:
+        break;
+    }
+    if (flag) {
+      event.preventDefault();
+      event.stopPropagation();
     }
   }
 
@@ -369,4 +511,12 @@ declare global {
   interface HTMLElementTagNameMap {
     'vaadin-slider': VaadinSlider;
   }
+}
+
+interface KnobValueOptions {
+  knobIndex: number;
+  single: number;
+  first?: number;
+  last?: number;
+  other: number;
 }
