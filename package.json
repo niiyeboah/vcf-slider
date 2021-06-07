@@ -2,19 +2,19 @@
   "name": "@vaadin-component-factory/vcf-slider",
   "version": "1.0.0",
   "description": "Slider web component for the Vaadin platform.",
-  "main": "dist/vaadin-slider.js",
-  "module": "dist/vaadin-slider.js",
+  "main": "dist/vcf-slider.js",
+  "module": "dist/vcf-slider.js",
   "author": "Vaadin Ltd",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vaadin/vaadin-slider.git"
+    "url": "git+https://github.com/vaadin/vcf-slider.git"
   },
   "keywords": [
     "Vaadin",
     "vaadin-component-factory",
     "web-component",
-    "vaadin-slider",
+    "vcf-slider",
     "lit-element"
   ],
   "scripts": {

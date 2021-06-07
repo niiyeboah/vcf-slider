@@ -1,27 +1,19 @@
-# &lt;vaadin-slider&gt;
+# &lt;vcf-slider&gt;
 
-**NOTE: This is a template for creating LitElement based web components with TypeScript.**
-
-
-
-<!--
-[![npm version](https://badgen.net/npm/v/@vaadin-component-factory/vaadin-slider)](https://www.npmjs.com/package/@vaadin-component-factory/vaadin-slider) [![Published on Vaadin Directory](https://img.shields.io/badge/Vaadin%20Directory-published-00b4f0.svg)](https://vaadin.com/directory/component/vaadin-component-factoryvaadin-slider)
+[![npm version](https://badgen.net/npm/v/@vaadin-component-factory/vcf-slider)](https://www.npmjs.com/package/@vaadin-component-factory/vcf-slider) [![Published on Vaadin Directory](https://img.shields.io/badge/Vaadin%20Directory-published-00b4f0.svg)](https://vaadin.com/directory/component/vaadin-component-factoryvcf-slider)
 
 Slider web component for the Vaadin platform.
--->
 
-![vaadin-slider-screenshot](https://user-images.githubusercontent.com/3392815/99876883-a41f3f00-2c02-11eb-81ab-b99c512ebf79.png)
+<img src="https://user-images.githubusercontent.com/3392815/121072109-746c0900-c7d9-11eb-8d4e-8bb728fa99f1.png" alt="drawing" width="420"/>
 
-<!--
-[Live demo ↗](https://vaadin-slider.netlify.com) | [API documentation ↗](https://vaadin-slider.netlify.com/api/#/elements/Vaadin.VaadinSlider)
--->
+[Live demo ↗](https://vcf-slider.netlify.com) | [API documentation ↗](https://vcf-slider.netlify.com/api/#/elements/Vaadin.VcfSlider)
 
 ## Installation
 
-Install `vaadin-slider`:
+Install `vcf-slider`:
 
 ```sh
-npm i @vaadin-component-factory/vaadin-slider --save
+npm i @vaadin-component-factory/vcf-slider --save
 ```
 
 ## Usage
@@ -29,29 +21,29 @@ npm i @vaadin-component-factory/vaadin-slider --save
 Once installed, import it in your application:
 
 ```js
-import '@vaadin-component-factory/vaadin-slider';
+import '@vaadin-component-factory/vcf-slider';
 ```
 
-Add `<vaadin-slider>` element to the page.
+Add `<vcf-slider>` element to the page.
 
 ```html
-<vaadin-slider></vaadin-slider>
+<vcf-slider ranges="1" step="2"></vcf-slider>
 ```
 
 ## Running demo
 
-1. Fork the `vaadin-slider` repository and clone it locally.
+1. Fork the `vcf-slider` repository and clone it locally.
 
 1. Make sure you have [yarn](https://yarnpkg.com/) installed.
 
-1. When in the `vaadin-slider` directory, run `yarn` to install dependencies.
+1. When in the `vcf-slider` directory, run `yarn` to install dependencies.
 
 1. Run `yarn start` to open the demo.
 
 <!--
 ## Server-side API
 
-This is the client-side (LitElement) web component. If you are looking for the server-side (Java) API for the Vaadin Platform, it can be found here: [VaadinSlider](https://vaadin.com/directory/component/VaadinSlider)
+This is the client-side (LitElement) web component. If you are looking for the server-side (Java) API for the Vaadin Platform, it can be found here: [VcfSlider](https://vaadin.com/directory/component/VcfSlider)
 -->
 
 ## License

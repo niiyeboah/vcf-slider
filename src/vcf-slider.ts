@@ -11,15 +11,15 @@ const TOUCH_DEVICE = (() => {
 })();
 
 /**
- * `<vaadin-slider>` Slider web component for the Vaadin platform.
+ * `<vcf-slider>` Slider web component for the Vaadin platform.
  *
  * @csspart container - Wrapper element.
  * @csspart line - Line element.
  * @csspart knob - Knob elements.
  * @csspart knob-n - Nth knob element.
  */
-@customElement('vaadin-slider')
-export class VaadinSlider extends LitElement {
+@customElement('vcf-slider')
+export class VcfSlider extends LitElement {
   @property({ type: Boolean, reflect: true }) labels = true;
   @property({ type: Number }) value: number | number[] = 0;
   @property({ type: Number }) ranges = 0;
@@ -45,25 +45,25 @@ export class VaadinSlider extends LitElement {
       :host {
         display: block;
         margin: var(--lumo-space-s) 0;
-        --vaadin-slider-padding: var(--lumo-space-xs);
-        --vaadin-slider-line-width: calc(100% - 2 * var(--vaadin-slider-padding));
-        --vaadin-slider-line-height: var(--lumo-space-s);
-        --vaadin-slider-knob-size: var(--lumo-space-m);
-        --vaadin-slider-line-color: var(--lumo-contrast-50pct);
-        --vaadin-slider-line-alternate-color: var(--lumo-contrast-30pct);
-        --vs-l-height: var(--vaadin-slider-line-height);
-        --vs-k-size: var(--vaadin-slider-knob-size);
+        --vcf-slider-padding: var(--lumo-space-xs);
+        --vcf-slider-line-width: calc(100% - 2 * var(--vcf-slider-padding));
+        --vcf-slider-line-height: var(--lumo-space-s);
+        --vcf-slider-knob-size: var(--lumo-space-m);
+        --vcf-slider-line-color: var(--lumo-contrast-50pct);
+        --vcf-slider-line-alternate-color: var(--lumo-contrast-30pct);
+        --vs-l-height: var(--vcf-slider-line-height);
+        --vs-k-size: var(--vcf-slider-knob-size);
       }
 
       [part='container'] {
-        width: var(--vaadin-slider-line-width);
-        padding: var(--vaadin-slider-padding);
+        width: var(--vcf-slider-line-width);
+        padding: var(--vcf-slider-padding);
       }
 
       [part='line'] {
         position: relative;
         width: 100%;
-        height: var(--vaadin-slider-line-height);
+        height: var(--vcf-slider-line-height);
         border-radius: var(--lumo-border-radius-m);
         background-color: var(--lumo-contrast-30pct);
       }
@@ -80,8 +80,8 @@ export class VaadinSlider extends LitElement {
       [part~='knob'] {
         position: absolute;
         top: calc(-0.5 * var(--vs-k-size) + calc(0.5 * var(--vs-l-height)));
-        width: var(--vaadin-slider-knob-size);
-        height: var(--vaadin-slider-knob-size);
+        width: var(--vcf-slider-knob-size);
+        height: var(--vcf-slider-knob-size);
         border-radius: var(--lumo-border-radius-l);
         box-shadow: var(--lumo-box-shadow-s);
         user-select: none;
@@ -218,8 +218,8 @@ export class VaadinSlider extends LitElement {
   private setLineColors() {
     const { knobs, min, max, values } = this;
     const length = max - min;
-    const lineColor = getComputedStyle(this).getPropertyValue('--vaadin-slider-line-color').trim();
-    const altLineColor = getComputedStyle(this).getPropertyValue('--vaadin-slider-line-alternate-color').trim();
+    const lineColor = getComputedStyle(this).getPropertyValue('--vcf-slider-line-color').trim();
+    const altLineColor = getComputedStyle(this).getPropertyValue('--vcf-slider-line-alternate-color').trim();
     let colors = '';
     let prevStop = '';
     const color = (i: number) => (i % 2 ? lineColor : knobs > 3 ? 'transparent' : altLineColor);
@@ -509,7 +509,7 @@ export class VaadinSlider extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'vaadin-slider': VaadinSlider;
+    'vcf-slider': VcfSlider;
   }
 }
 
