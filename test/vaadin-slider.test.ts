@@ -1,6 +1,6 @@
 import { html, fixture, expect } from '@open-wc/testing';
 
-import { VcfSlider } from '../vcf-slider.js';
+import { VcfSlider } from '../src/vcf-slider.js';
 
 describe('VcfSlider', () => {
   it('can override the title via attribute', async () => {

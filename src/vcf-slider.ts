@@ -1,14 +1,15 @@
-import { html, css, query, customElement, property, internalProperty, PropertyValues, LitElement } from 'lit-element';
+import { html, css, PropertyValues, LitElement } from 'lit';
+import { query, property, state, customElement } from 'lit/decorators';
 
 type PointerEvent = MouseEvent | TouchEvent;
-const TOUCH_DEVICE = (() => {
-  try {
-    document.createEvent('TouchEvent');
-    return true;
-  } catch (e) {
-    return false;
-  }
-})();
+// const TOUCH_DEVICE = (() => {
+//   try {
+//     document.createEvent('TouchEvent');
+//     return true;
+//   } catch (e) {
+//     return false;
+//   }
+// })();
 
 /**
  * `<vcf-slider>` Slider web component for the Vaadin platform.
@@ -26,8 +27,8 @@ export class VcfSlider extends LitElement {
   @property({ type: Number }) step = 1;
   @property({ type: Number }) min = 0;
   @property({ type: Number }) max = 100;
-  @internalProperty() private knobs = 1;
-  private touchDevice = TOUCH_DEVICE;
+  @state() private knobs = 1;
+  // private touchDevice = TOUCH_DEVICE;
   private knob?: HTMLElement;
   private originalKnobOffsetX = 0;
   private originalPointerX = 0;
