@@ -1,6 +1,6 @@
 {
   "name": "@vaadin-component-factory/vcf-slider",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Slider web component for the Vaadin platform.",
   "main": "dist/vcf-slider.js",
   "module": "dist/vcf-slider.js",
