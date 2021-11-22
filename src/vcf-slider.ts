@@ -157,6 +157,9 @@ export class VcfSlider extends LitElement {
             this.setKnobPostion(i);
             this.setLineColors();
           });
+
+          // TODO Add events...
+          this.dispatchEvent(new CustomEvent('change', { detail: this.value }));
           break;
         }
       }
@@ -172,7 +175,7 @@ export class VcfSlider extends LitElement {
   }
 
   private setAriaValues(i = 0) {
-    const { knobIndexes, values, knobs, min, max, labels } = this;
+    const { values, knobs, min, max } = this;
     const knob = this.knobElement(i) as HTMLElement;
     if (knob) {
       knob.setAttribute('aria-valuenow', `${values[i]}`);
@@ -320,7 +323,7 @@ export class VcfSlider extends LitElement {
         // Set new value & knob position
         if (values[i] !== value) {
           values[i] = value;
-          this.value = [...values];
+          this.value = this.knobs === 1 ? value : [...values];
           this.setKnobPostion(i);
         }
 
