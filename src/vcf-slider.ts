@@ -152,6 +152,7 @@ export class VcfSlider extends LitElement {
         case 'value': {
           this.setLabelValues();
           this.knobIndexes.forEach(i => {
+            this.setAriaValues(i);
             this.setLabelPosition(i);
             this.setKnobPostion(i);
             this.setLineColors();
@@ -166,8 +167,18 @@ export class VcfSlider extends LitElement {
     const { knobIndexes, values } = this;
     knobIndexes.forEach(i => {
       const labelElement = this.labelElement(i) as HTMLElement;
-      if (this.labelElement(i)) labelElement.innerText = `${values[i]}`;
+      if (labelElement) labelElement.innerText = `${values[i]}`;
     });
+  }
+
+  private setAriaValues(i = 0) {
+    const { knobIndexes, values, knobs, min, max, labels } = this;
+    const knob = this.knobElement(i) as HTMLElement;
+    if (knob) {
+      knob.setAttribute('aria-valuenow', `${values[i]}`);
+      knob.setAttribute('aria-valuemin', `${knobs === 1 ? min : this.getPrevNeighborValue(i)}`);
+      knob.setAttribute('aria-valuemax', `${knobs === 1 ? max : this.getNextNeighborValue(i)}`);
+    }
   }
 
   private get initialValue() {
@@ -372,21 +383,21 @@ export class VcfSlider extends LitElement {
   }
 
   private getPrevNeighborValue(knobIndex: number) {
-    const { values, step } = this;
+    const { values, step, min } = this;
     let neighboringValue;
     neighboringValue = values[knobIndex - 1];
     const neighborPrecisionOffset = neighboringValue % step;
     if (neighborPrecisionOffset) neighboringValue += step - neighborPrecisionOffset;
-    return neighboringValue;
+    return neighboringValue ? neighboringValue : min;
   }
 
   private getNextNeighborValue(knobIndex: number) {
-    const { values, step } = this;
+    const { values, step, max } = this;
     let neighboringValue;
     neighboringValue = values[knobIndex + 1];
     const neighborPrecisionOffset = neighboringValue % step;
     if (neighborPrecisionOffset) neighboringValue -= neighborPrecisionOffset;
-    return neighboringValue;
+    return neighboringValue ? neighboringValue : max;
   }
 
   private decreaseKnobValue({ knobIndex, single, first = this.min, other }: KnobValueOptions) {
