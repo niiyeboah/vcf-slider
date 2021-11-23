@@ -160,7 +160,7 @@ export class VcfSlider extends LitElement {
           });
 
           // TODO Add events...
-          this.dispatchEvent(new CustomEvent('change', { detail: this.value }));
+          this.dispatchEvent(new CustomEvent('change', { detail: { value: this.value } }));
           break;
         }
       }
