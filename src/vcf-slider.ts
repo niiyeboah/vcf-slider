@@ -38,7 +38,7 @@ export class VcfSlider extends LitElement {
   @query('[part="line-color"]') private lineColor?: HTMLElement;
 
   static get version() {
-    return '1.0.4';
+    return '1.0.5';
   }
 
   static get styles() {
