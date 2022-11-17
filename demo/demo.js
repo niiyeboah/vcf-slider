@@ -1,21 +1,25 @@
 import '@vaadin/vaadin-lumo-styles';
 import '@vaadin-component-factory/vcf-anchor-nav';
-import 'api-viewer-element/lib/api-docs.js';
-import 'api-viewer-element/lib/api-demo.js';
-import '../dist/src/vcf-slider.js';
+import '@api-viewer/docs';
+import '@api-viewer/demo';
+import '../out-tsc/vcf-slider.js';
 
-const show = () => document.querySelectorAll('.hidden').forEach(element => element.classList.remove('hidden'));
+const show = () => {
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.hidden').forEach(element => element.classList.remove('hidden'));
+    document.querySelector('vcf-anchor-nav')._scrollToHash();
+  });
+};
 
 window.addEventListener('WebComponentsReady', () => {
-  const anchorNav = document.querySelector('vcf-anchor-nav');
+  const customElements = './custom-elements.json';
   const apiDemos = document.querySelectorAll('api-demo');
   const apiDocs = document.querySelector('api-docs');
 
-  fetch('./custom-elements.json')
+  fetch(customElements)
     .then(res => res.json())
-    .then(data => {
-      [apiDocs, ...apiDemos].forEach(elem => (elem.elements = data.tags));
-      anchorNav._scrollToHash();
+    .then(manifest => {
+      [apiDocs, ...apiDemos].forEach(elem => (elem.manifest = manifest));
       show();
     });
 });

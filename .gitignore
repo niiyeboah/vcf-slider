@@ -20,9 +20,10 @@
 /dist/
 /out-tsc/
 /src-js/
-/build/
 
 # dev
 /test-element/
 /legacy/
+/build/
 custom-elements.json
+analysis.json

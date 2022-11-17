@@ -1,15 +1,22 @@
 import { html, css, PropertyValues, LitElement } from 'lit';
-import { query, property, state, customElement } from 'lit/decorators';
+import { query, property, state, customElement } from 'lit/decorators.js';
 
-type PointerEvent = MouseEvent | TouchEvent;
-// const TOUCH_DEVICE = (() => {
-//   try {
-//     document.createEvent('TouchEvent');
-//     return true;
-//   } catch (e) {
-//     return false;
-//   }
-// })();
+let hasTouched = false;
+
+/**
+ * Check if an event was triggered by touch.
+ */
+export const isTouch = (e: Event): e is TouchEvent => 'touches' in e;
+
+/**
+ * Prevent mobile browsers from handling mouse events (conflicting with touch ones).
+ * If we detected a touch interaction before, we prefer reacting to touch events only.
+ */
+export const isValid = (event: Event): boolean => {
+  if (hasTouched && !isTouch(event)) return false;
+  if (!hasTouched) hasTouched = isTouch(event);
+  return true;
+};
 
 /**
  * `<vcf-slider>` Slider web component for the Vaadin platform.
@@ -20,24 +27,29 @@ type PointerEvent = MouseEvent | TouchEvent;
  * @csspart knob-n - Nth knob element.
  */
 @customElement('vcf-slider')
-export class VcfSlider extends LitElement {
+export class Slider extends LitElement {
   @property({ type: Boolean, reflect: true }) labels = true;
   @property({ type: Number }) value: number | number[] = 0;
   @property({ type: Number }) ranges = 0;
   @property({ type: Number }) step = 1;
   @property({ type: Number }) min = 0;
   @property({ type: Number }) max = 100;
+
   @state() private knobs = 1;
-  // private touchDevice = TOUCH_DEVICE;
+
   private knob?: HTMLElement;
   private originalKnobOffsetX = 0;
   private originalPointerX = 0;
 
-  @query('[part="knobs"]') private knobsContainer?: HTMLElement;
-  @query('[part="line"]') private line?: HTMLElement;
-  @query('[part="line-color"]') private lineColor?: HTMLElement;
+  @query('#knobs') private knobsContainer?: HTMLElement;
+  @query('#line') private line?: HTMLElement;
+  @query('#line-color') private lineColor?: HTMLElement;
 
-  static get version() {
+  protected static is() {
+    return 'vcf-slider';
+  }
+
+  protected static get version() {
     return '1.0.5';
   }
 
@@ -52,24 +64,25 @@ export class VcfSlider extends LitElement {
         --vcf-slider-knob-size: var(--lumo-space-m);
         --vcf-slider-line-color: var(--lumo-contrast-50pct);
         --vcf-slider-line-alternate-color: var(--lumo-contrast-30pct);
-        --vs-l-height: var(--vcf-slider-line-height);
-        --vs-k-size: var(--vcf-slider-knob-size);
+        /* ALIASES */
+        --l-height: var(--vcf-slider-line-height);
+        --k-size: var(--vcf-slider-knob-size);
       }
 
-      [part='container'] {
+      #container {
         width: var(--vcf-slider-line-width);
         padding: var(--vcf-slider-padding);
       }
 
-      [part='line'] {
+      #line {
         position: relative;
         width: 100%;
-        height: var(--vcf-slider-line-height);
+        height: var(--l-height);
         border-radius: var(--lumo-border-radius-m);
         background-color: var(--lumo-contrast-30pct);
       }
 
-      [part='line-color'] {
+      #line-color {
         position: absolute;
         top: 0;
         right: 0;
@@ -80,9 +93,9 @@ export class VcfSlider extends LitElement {
 
       [part~='knob'] {
         position: absolute;
-        top: calc(-0.5 * var(--vs-k-size) + calc(0.5 * var(--vs-l-height)));
-        width: var(--vcf-slider-knob-size);
-        height: var(--vcf-slider-knob-size);
+        top: calc(-0.5 * var(--k-size) + calc(0.5 * var(--l-height)));
+        width: var(--k-size);
+        height: var(--k-size);
         border-radius: var(--lumo-border-radius-l);
         box-shadow: var(--lumo-box-shadow-s);
         user-select: none;
@@ -96,7 +109,7 @@ export class VcfSlider extends LitElement {
       [part~='label'] {
         display: none;
         position: absolute;
-        top: calc(-0.5 * var(--vs-k-size) + calc(0.5 * var(--vs-l-height)) - calc(2 * var(--lumo-space-m)));
+        top: calc(-0.5 * var(--k-size) + calc(0.5 * var(--l-height)) - calc(2 * var(--lumo-space-m)));
         border-radius: var(--lumo-border-radius-s);
         box-shadow: var(--lumo-box-shadow-xs);
         background-color: var(--lumo-base-color);
@@ -112,59 +125,82 @@ export class VcfSlider extends LitElement {
 
   render() {
     return html`
-      <div part="container">
-        <div part="line">
-          <div part="line-color"></div>
-          <div part="knobs"></div>
+      <div id="container" part="container">
+        <div id="line" part="line">
+          <div id="line-color" part="line-color"></div>
+          <div id="knobs" part="knobs"></div>
         </div>
       </div>
     `;
   }
 
   updated(props: PropertyValues) {
-    props.forEach(async (_, prop) => {
-      switch (prop) {
-        case 'labels': {
-          if (this.labels) this.style.paddingTop = 'var(--lumo-space-l)';
-          else this.style.paddingTop = '0';
-          break;
-        }
-        case 'ranges': {
-          const { ranges } = this;
-          if (typeof ranges === 'number' && ranges >= 0) this.knobs = 2 * ranges || 1;
-          else this.ranges = 0;
-          break;
-        }
-        case 'min':
-        case 'max':
-        case 'knobs': {
-          if (this.knobs) {
-            this.setKnobElements();
-            this.setInitialValue();
-          }
-          break;
-        }
-        case 'step': {
-          const { step } = this;
-          if (step.toString().includes('.')) this.step = Math.round(step);
-          if (step < 1) this.step = 1;
-          break;
-        }
-        case 'value': {
-          this.setLabelValues();
-          this.knobIndexes.forEach(i => {
-            this.setAriaValues(i);
-            this.setLabelPosition(i);
-            this.setKnobPostion(i);
-            this.setLineColors();
-          });
+    const { ranges, labels, step } = this;
 
-          // TODO Add events...
-          this.dispatchEvent(new CustomEvent('change', { detail: { value: this.value } }));
-          break;
-        }
-      }
-    });
+    if (props.has('labels')) {
+      this.style.paddingTop = labels ? 'var(--lumo-space-l)' : '0';
+    }
+
+    if (props.has('ranges')) {
+      if (typeof ranges === 'number' && ranges >= 0) this.knobs = 2 * ranges || 1;
+      else this.ranges = 0;
+    }
+
+    if (this.knobs && (props.has('ranges') || props.has('ranges') || props.has('ranges'))) {
+      this.setKnobElements();
+      this.setInitialValue();
+    }
+
+    if (props.has('step')) {
+      if (!Number.isSafeInteger(step)) this.step = Math.round(step);
+      if (step < 1) this.step = 1;
+    }
+
+    if (props.has('value')) {
+      this.setLabelValues();
+      this.knobIndexes.forEach(i => {
+        this.setAriaValues(i);
+        this.setLabelPosition(i);
+        this.setKnobPostion(i);
+        this.setLineColors();
+      });
+
+      // TODO
+      this.dispatchEvent(new CustomEvent('change', { detail: { value: this.value } }));
+    }
+  }
+
+  /** @private */
+  handleEvent(e: Event) {
+    const knob = e.target as HTMLElement;
+    const isKnobClick = !hasTouched && (e as MouseEvent).button !== 0;
+    switch (e.type) {
+      case 'mousedown':
+      case 'touchstart':
+        e.preventDefault();
+        if (!isValid(e) || isKnobClick) return;
+        knob.focus();
+        this.startDrag(e);
+        this.dragging = true;
+        break;
+      case 'mousemove':
+      case 'touchmove':
+        this.drag(e);
+        break;
+      case 'mouseup':
+      case 'touchend':
+        this.dragging = false;
+        break;
+      case 'keydown':
+        this.keyMove(e, Slider.getKnobIndex(knob));
+        break;
+    }
+  }
+
+  private addKnobEvents(knob: HTMLElement) {
+    knob.addEventListener('mousedown', this);
+    knob.addEventListener('touchstart', this);
+    knob.addEventListener('keydown', this);
   }
 
   private setLabelValues() {
@@ -189,9 +225,9 @@ export class VcfSlider extends LitElement {
     const { knobs, min, max, step } = this;
     const valueStep = (max - min) / (knobs - 1);
     const values: number[] = [];
-    this.knobIndexes.map(i => {
+    this.knobIndexes.forEach(i => {
       let init = Math.round(i === 0 ? min : i < knobs - 1 ? i * valueStep : max);
-      init = init - (init % step);
+      init -= init % step;
       values.push(init < min ? min : init > max ? max : init);
     });
     return values;
@@ -249,35 +285,36 @@ export class VcfSlider extends LitElement {
     this.lineColor!.style.background = `linear-gradient(to right, ${colors})`;
   }
 
-  private getKnobIndex(knob: HTMLElement) {
+  private static getKnobIndex(knob: HTMLElement) {
     const idMatch = /knob-(.)/.exec(knob.getAttribute('part') || '');
     return idMatch ? Number(idMatch[1]) : 0;
   }
 
-  private startDrag = (e: PointerEvent) => {
-    this.knob = e.target as HTMLElement;
-    const { knob, label, knobsContainer } = this;
-    const button = (e as MouseEvent).button;
-    const touches = (e as TouchEvent).touches;
+  private set dragging(state: boolean) {
+    const toggleEvent = state ? document.addEventListener : document.removeEventListener;
+    toggleEvent(hasTouched ? 'touchmove' : 'mousemove', this);
+    toggleEvent(hasTouched ? 'touchend' : 'mouseup', this);
+  }
 
-    this.originalPointerX = (e as MouseEvent).pageX;
-    this.originalKnobOffsetX = this.getBounds(knob).x - this.lineBounds!.x;
-    if (button === 0 || touches) {
-      window.addEventListener('mouseup', this.endDrag);
-      window.addEventListener('touchend', this.endDrag);
-      window.addEventListener('mousemove', this.drag);
-      window.addEventListener('touchmove', this.drag);
-    }
+  private getPointerX(e: Event) {
+    return (e as MouseEvent).pageX || (e as TouchEvent).touches[0].pageX;
+  }
+
+  private startDrag = (e: Event) => {
+    const { label, knobsContainer } = this;
+    this.knob = e.target as HTMLElement;
+    this.originalPointerX = this.getPointerX(e);
+    this.originalKnobOffsetX = this.getBounds(this.knob).x - this.lineBounds!.x;
 
     // Move current knob and label to top
-    knobsContainer?.appendChild(knob);
+    knobsContainer?.appendChild(this.knob);
     knobsContainer?.appendChild(label);
   };
 
-  private drag = (e: PointerEvent) => {
+  private drag = (e: Event) => {
     const { knob, knobs, originalKnobOffsetX, originalPointerX, line, lineBounds } = this;
-    if (knob) {
-      const i = this.getKnobIndex(knob);
+    if (knob && line) {
+      const i = Slider.getKnobIndex(knob);
       const knobBounds = this.getBounds(knob);
       let startX = -knobBounds.width / 2;
       let endX = lineBounds!.width - knobBounds.width / 2;
@@ -287,28 +324,28 @@ export class VcfSlider extends LitElement {
       switch (part) {
         case 'knob-0': {
           if (knobs > 1) {
-            const toKnob = line!.querySelector('[part~="knob-1"]') as HTMLElement;
+            const toKnob = line.querySelector('[part~="knob-1"]') as HTMLElement;
             endX = this.getBounds(toKnob).x - lineBounds!.x;
           }
           break;
         }
         case `knob-${knobs - 1}`: {
           if (knobs > 1) {
-            const fromKnob = line!.querySelector(`[part~="knob-${knobs - 2}"]`) as HTMLElement;
+            const fromKnob = line.querySelector(`[part~="knob-${knobs - 2}"]`) as HTMLElement;
             startX = this.getBounds(fromKnob).x - lineBounds!.x;
           }
           break;
         }
         default: {
-          const fromKnob = line!.querySelector(`[part~="knob-${i - 1}"]`) as HTMLElement;
-          const toKnob = line!.querySelector(`[part~="knob-${i + 1}"]`) as HTMLElement;
+          const fromKnob = line.querySelector(`[part~="knob-${i - 1}"]`) as HTMLElement;
+          const toKnob = line.querySelector(`[part~="knob-${i + 1}"]`) as HTMLElement;
           startX = this.getBounds(fromKnob).x - lineBounds!.x;
           endX = this.getBounds(toKnob).x - lineBounds!.x;
         }
       }
 
       // Calculate knob position
-      let newPositionX = originalKnobOffsetX + ((e as MouseEvent).pageX - originalPointerX);
+      let newPositionX = originalKnobOffsetX + (this.getPointerX(e) - originalPointerX);
       const startLimit = newPositionX <= startX;
       const endLimit = newPositionX >= endX;
       newPositionX = startLimit ? startX : endLimit ? endX : newPositionX;
@@ -334,15 +371,8 @@ export class VcfSlider extends LitElement {
     }
   };
 
-  private endDrag = () => {
-    window.removeEventListener('mouseup', this.endDrag);
-    window.removeEventListener('touchend', this.endDrag);
-    window.removeEventListener('mousemove', this.drag);
-    window.removeEventListener('touchmove', this.drag);
-  };
-
   private get label() {
-    const i = this.knob ? this.getKnobIndex(this.knob) : 0;
+    const i = this.knob ? Slider.getKnobIndex(this.knob) : 0;
     return this.labelElement(i) as HTMLElement;
   }
 
@@ -374,9 +404,8 @@ export class VcfSlider extends LitElement {
     knobElement.tabIndex = knobIndex + 1;
     knobElement.setAttribute('role', 'slider');
     knobElement.setAttribute('part', `knob knob-${knobIndex}`);
-    knobElement.addEventListener('mousedown', this.startDrag);
+    this.addKnobEvents(knobElement);
     if (knobIndex % 2) knobElement.classList.add('alternate');
-    knobElement.addEventListener('keydown', event => this.handleKnobKeyDownEvent(event, knobIndex));
     return knobElement;
   }
 
@@ -392,7 +421,7 @@ export class VcfSlider extends LitElement {
     neighboringValue = values[knobIndex - 1];
     const neighborPrecisionOffset = neighboringValue % step;
     if (neighborPrecisionOffset) neighboringValue += step - neighborPrecisionOffset;
-    return neighboringValue ? neighboringValue : min;
+    return neighboringValue || min;
   }
 
   private getNextNeighborValue(knobIndex: number) {
@@ -401,7 +430,7 @@ export class VcfSlider extends LitElement {
     neighboringValue = values[knobIndex + 1];
     const neighborPrecisionOffset = neighboringValue % step;
     if (neighborPrecisionOffset) neighboringValue -= neighborPrecisionOffset;
-    return neighboringValue ? neighboringValue : max;
+    return neighboringValue || max;
   }
 
   private decreaseKnobValue({ knobIndex, single, first = this.min, other }: KnobValueOptions) {
@@ -433,7 +462,7 @@ export class VcfSlider extends LitElement {
       // Use the smallest number between max value and requested value.
       first: Math.max(min, values[0] - step),
       // Use the smallest number between max value, requested value, and the neighboring value.
-      other: Math.max(min, values[knobIndex] - step, this.getPrevNeighborValue(knobIndex))
+      other: Math.max(min, values[knobIndex] - step, this.getPrevNeighborValue(knobIndex)),
     });
   }
 
@@ -444,7 +473,7 @@ export class VcfSlider extends LitElement {
       single: min,
       first: min,
       // Use the biggest number between min value and the neighboring value.
-      other: Math.max(min, this.getPrevNeighborValue(knobIndex))
+      other: Math.max(min, this.getPrevNeighborValue(knobIndex)),
     });
   }
 
@@ -457,7 +486,7 @@ export class VcfSlider extends LitElement {
       // Use the smallest number between max value and requested value.
       last: Math.min(max, values[knobIndex] + step),
       // Use the smallest number between max value, requested value, and the neighboring value.
-      other: Math.min(max, values[knobIndex] + step, this.getNextNeighborValue(knobIndex))
+      other: Math.min(max, values[knobIndex] + step, this.getNextNeighborValue(knobIndex)),
     });
   }
 
@@ -468,13 +497,13 @@ export class VcfSlider extends LitElement {
       single: max,
       last: max,
       // Use the smallest number between max value and the neighboring value.
-      other: Math.min(this.max, this.getNextNeighborValue(knobIndex))
+      other: Math.min(this.max, this.getNextNeighborValue(knobIndex)),
     });
   }
 
-  private handleKnobKeyDownEvent(event: KeyboardEvent, knobIndex: number) {
+  private keyMove(event: Event, knobIndex: number) {
     let flag = false;
-    const key = event.key || event.keyCode;
+    const key = (event as KeyboardEvent).key || (event as KeyboardEvent).keyCode;
     switch (key) {
       case 'ArrowLeft':
       case 37:
@@ -483,7 +512,6 @@ export class VcfSlider extends LitElement {
         this.decreaseKnobValueByStep(knobIndex);
         flag = true;
         break;
-
       case 'ArrowRight':
       case 39:
       case 'ArrowUp':
@@ -491,19 +519,16 @@ export class VcfSlider extends LitElement {
         this.increaseKnobValueByStep(knobIndex);
         flag = true;
         break;
-
       case 'Home':
       case 36:
         this.decreaseKnobValueToLowest(knobIndex);
         flag = true;
         break;
-
       case 'End':
       case 35:
         this.increaseKnobValueToHighest(knobIndex);
         flag = true;
         break;
-
       default:
         break;
     }
@@ -524,7 +549,7 @@ export class VcfSlider extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'vcf-slider': VcfSlider;
+    'vcf-slider': Slider;
   }
 }
 
