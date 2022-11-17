@@ -1,5 +1,6 @@
 import { html, css, PropertyValues, LitElement } from 'lit';
 import { query, property, state, customElement } from 'lit/decorators.js';
+import { CustomEventMixin } from './mixins/CustomEventMixin';
 
 let hasTouched = false;
 
@@ -27,7 +28,7 @@ export const isValid = (event: Event): boolean => {
  * @csspart knob-n - Nth knob element.
  */
 @customElement('vcf-slider')
-export class Slider extends LitElement {
+export class Slider extends CustomEventMixin(LitElement) {
   @property({ type: Boolean, reflect: true }) labels = true;
   @property({ type: Number }) value: number | number[] = 0;
   @property({ type: Number }) ranges = 0;
@@ -66,7 +67,7 @@ export class Slider extends LitElement {
         --vcf-slider-line-alternate-color: var(--lumo-contrast-30pct);
         /* ALIASES */
         --l-height: var(--vcf-slider-line-height);
-        --k-size: var(--vcf-slider-knob-size);
+        --k-size: calc(var(--vcf-slider-knob-size) * 2);
       }
 
       #container {
@@ -93,13 +94,21 @@ export class Slider extends LitElement {
 
       [part~='knob'] {
         position: absolute;
+        display: flex;
         top: calc(-0.5 * var(--k-size) + calc(0.5 * var(--l-height)));
         width: var(--k-size);
         height: var(--k-size);
+        user-select: none;
+      }
+
+      [part~='knob']::before {
+        content: '';
+        width: var(--vcf-slider-knob-size);
+        height: var(--vcf-slider-knob-size);
         border-radius: var(--lumo-border-radius-l);
         box-shadow: var(--lumo-box-shadow-s);
-        user-select: none;
         background-color: var(--lumo-primary-color);
+        margin: auto;
       }
 
       [part~='knob'].alternate {
@@ -109,7 +118,7 @@ export class Slider extends LitElement {
       [part~='label'] {
         display: none;
         position: absolute;
-        top: calc(-0.5 * var(--k-size) + calc(0.5 * var(--l-height)) - calc(2 * var(--lumo-space-m)));
+        top: calc(-0.5 * var(--vcf-slider-knob-size) + calc(0.5 * var(--l-height)) - calc(2 * var(--lumo-space-m)));
         border-radius: var(--lumo-border-radius-s);
         box-shadow: var(--lumo-box-shadow-xs);
         background-color: var(--lumo-base-color);
@@ -173,12 +182,12 @@ export class Slider extends LitElement {
   /** @private */
   handleEvent(e: Event) {
     const knob = e.target as HTMLElement;
-    const isKnobClick = !hasTouched && (e as MouseEvent).button !== 0;
+
     switch (e.type) {
       case 'mousedown':
       case 'touchstart':
         e.preventDefault();
-        if (!isValid(e) || isKnobClick) return;
+        if (!isValid(e) || this.isKnobClick(e)) return;
         knob.focus();
         this.startDrag(e);
         this.dragging = true;
@@ -195,6 +204,10 @@ export class Slider extends LitElement {
         this.keyMove(e, Slider.getKnobIndex(knob));
         break;
     }
+  }
+
+  private isKnobClick(e: Event) {
+    return !hasTouched && (e as MouseEvent).button !== 0;
   }
 
   private addKnobEvents(knob: HTMLElement) {

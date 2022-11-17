@@ -20,6 +20,7 @@ export function CustomEventMixin<TElement extends Constructor>(BaseElement: TEle
       options?: AddEventListenerOptions | boolean
     ): void;
 
+    /** @private */
     addEventListener(
       type: string,
       listener: (this: CustomEventTarget, e: Event) => void,
@@ -34,6 +35,7 @@ export function CustomEventMixin<TElement extends Constructor>(BaseElement: TEle
       options?: EventListenerOptions | boolean
     ): void;
 
+    /** @private */
     removeEventListener(
       type: string,
       listener: (this: CustomEventTarget, e: Event) => void,
