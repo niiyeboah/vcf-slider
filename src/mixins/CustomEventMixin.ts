@@ -1,13 +1,16 @@
 export type Constructor<T = HTMLElement> = new (...args: any[]) => T;
 
-export type CounterChangedEvent = CustomEvent<{ counter: number }>;
+export type ValueChangedEvent = CustomEvent<{ value: number; index: number }>;
+
+export type ValuesChangedEvent = CustomEvent<{ values: number[] }>;
 
 export enum CustomEvents {
-  counterChanged = 'counter-changed',
+  valueChanged = 'value-changed',
+  valuesChanged = 'values-changed',
 }
 
 export interface SliderCustomEventMap {
-  [CustomEvents.counterChanged]: CounterChangedEvent;
+  [CustomEvents.valueChanged]: ValuesChangedEvent;
 }
 
 export interface SliderEventMap extends HTMLElementEventMap, SliderCustomEventMap {}
