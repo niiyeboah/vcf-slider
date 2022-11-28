@@ -1,6 +1,6 @@
 import { html, css, PropertyValues, LitElement, render, TemplateResult } from 'lit';
 import { query, property, customElement } from 'lit/decorators.js';
-import { CustomEventMixin, CustomEvents, ValueChangedEvent, ValuesChangedEvent } from './mixins/CustomEventMixin';
+import { CustomEventMixin, CustomEvents, ValueChangedEvent } from './mixins/CustomEventMixin';
 
 /**
  * `<vcf-slider>` Slider web component for the Vaadin platform.
@@ -25,7 +25,7 @@ import { CustomEventMixin, CustomEvents, ValueChangedEvent, ValuesChangedEvent }
 @customElement('vcf-slider')
 export class Slider extends CustomEventMixin(LitElement) {
   @property({ type: Boolean, reflect: true }) labels = false;
-  @property({ type: Number }) value: number | number[] = 0;
+  @property({ type: Number }) value: string | number | number[] = 0;
   @property({ type: Number }) ranges = 0;
   @property({ type: Number }) step = 1;
   @property({ type: Number }) min = 0;
@@ -45,7 +45,7 @@ export class Slider extends CustomEventMixin(LitElement) {
 
   private knob?: HTMLElement;
   private originalKnobOffsetX = 0;
-  private originalPointerX = 0;
+  private originalPointerX: number | null = 0;
   private knobCount = 1;
 
   private set knobs(value: number) {
@@ -181,6 +181,10 @@ export class Slider extends CustomEventMixin(LitElement) {
   updated(props: PropertyValues) {
     const { ranges, step } = this;
 
+    if (props.has('labels') && this.labels) {
+      this.knobIndexes.forEach(i => this.setLabelPosition(i, this.values));
+    }
+
     if (props.has('ranges')) {
       if (typeof ranges === 'number' && ranges >= 0) this.knobs = 2 * ranges || 1;
       else this.ranges = 0;
@@ -249,15 +253,13 @@ export class Slider extends CustomEventMixin(LitElement) {
   }
 
   private get valueChangedEvent() {
-    const detail = { value: this.values[this.knobIndex], index: this.knobIndex };
+    const detail = {
+      index: this.knobIndex,
+      value: this.values[this.knobIndex],
+      values: this.values,
+    };
     const event = new CustomEvent(CustomEvents.valueChanged, { detail });
     return event as ValueChangedEvent;
-  }
-
-  private get valuesChangedEvent() {
-    const detail = { values: [...this.values] };
-    const event = new CustomEvent(CustomEvents.valuesChanged, { detail });
-    return event as ValuesChangedEvent;
   }
 
   private static getKnobIndex(knob: HTMLElement) {
@@ -307,8 +309,10 @@ export class Slider extends CustomEventMixin(LitElement) {
   }
 
   private get values() {
-    const { value } = this;
-    return (Array.isArray(value) ? value : [value || 0]) as number[];
+    let { value } = this;
+    if (typeof value === 'string') value = JSON.parse(value[0] === '[' ? value : `[${value}]`);
+    else value = (Array.isArray(value) ? value : [value || 0]) as number[];
+    return value as number[];
   }
 
   private setValue(values = this.values) {
@@ -320,7 +324,6 @@ export class Slider extends CustomEventMixin(LitElement) {
       this.setLineColors(values);
     });
     this.dispatchEvent(this.valueChangedEvent);
-    this.dispatchEvent(this.valuesChangedEvent);
   }
 
   private setKnobPostion(i = 0, values = this.initialValue) {
@@ -371,18 +374,21 @@ export class Slider extends CustomEventMixin(LitElement) {
   }
 
   private getPointerX(e: Event) {
-    return (e as MouseEvent).pageX || (e as TouchEvent).touches[0].pageX;
+    let pointerX: number | null = null;
+    if (e instanceof MouseEvent) pointerX = (e as MouseEvent).pageX;
+    else if (e instanceof TouchEvent) pointerX = (e as TouchEvent).touches[0].pageX;
+    return pointerX;
   }
 
   private startDrag = (e: Event) => {
-    const { label, knobsContainer } = this;
+    const { knobsContainer } = this;
     this.knob = e.target as HTMLElement;
     this.originalPointerX = this.getPointerX(e);
     this.originalKnobOffsetX = this.getBounds(this.knob).x - this.lineBounds!.x;
 
     // Move current knob and label to top
     knobsContainer?.appendChild(this.knob);
-    knobsContainer?.appendChild(label);
+    knobsContainer?.appendChild(this.label);
   };
 
   private drag = (e: Event) => {
@@ -418,28 +424,31 @@ export class Slider extends CustomEventMixin(LitElement) {
       }
 
       // Calculate knob position
-      let newPositionX = originalKnobOffsetX + (this.getPointerX(e) - originalPointerX);
-      const startLimit = newPositionX <= startX;
-      const endLimit = newPositionX >= endX;
-      newPositionX = startLimit ? startX : endLimit ? endX : newPositionX;
+      const pageX = this.getPointerX(e);
+      if (pageX && originalPointerX) {
+        let newPositionX = originalKnobOffsetX + (pageX - originalPointerX);
+        const startLimit = newPositionX <= startX;
+        const endLimit = newPositionX >= endX;
+        newPositionX = startLimit ? startX : endLimit ? endX : newPositionX;
 
-      // Calculate new value
-      const { min, max, step, values } = this;
-      const length = max - min;
-      const pct = (newPositionX + knobBounds.width / 2) / lineBounds!.width;
-      const value = Math.round(pct * length + min);
+        // Calculate new value
+        const { min, max, step, values } = this;
+        const length = max - min;
+        const pct = (newPositionX + knobBounds.width / 2) / lineBounds!.width;
+        const value = Math.round(pct * length + min);
 
-      // Step
-      if (value === min || (value > min && Math.abs(value) % step === 0)) {
-        // Set new value & knob position
-        if (values[i] !== value) {
-          values[i] = value;
-          this.value = this.knobs === 1 ? value : [...values];
-          this.setKnobPostion(i);
+        // Step
+        if (value === min || (value > min && Math.abs(value) % step === 0)) {
+          // Set new value & knob position
+          if (values[i] !== value) {
+            values[i] = value;
+            this.value = this.knobs === 1 ? value : [...values];
+            this.setKnobPostion(i);
+          }
+
+          // Change line colors
+          this.setLineColors();
         }
-
-        // Change line colors
-        this.setLineColors();
       }
     }
   };
