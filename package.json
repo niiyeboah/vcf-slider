@@ -62,7 +62,7 @@
     "@typescript-eslint/eslint-plugin": "^5.42.1",
     "@typescript-eslint/parser": "^5.42.1",
     "@vaadin-component-factory/vcf-anchor-nav": "^23.2.1",
-    "@vaadin-component-factory/vcf-element-util": "^0.3.4",
+    "@vaadin-component-factory/vcf-element-util": "^0.3.5",
     "@vaadin/vaadin-lumo-styles": "^23.2.8",
     "@web/dev-server": "^0.1.34",
     "@web/test-runner": "^0.14.0",
