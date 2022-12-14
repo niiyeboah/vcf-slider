@@ -1,6 +1,7 @@
 import { html, css, PropertyValues, LitElement, render, TemplateResult } from 'lit';
 import { query, property, customElement } from 'lit/decorators.js';
 import { CustomEventMixin, CustomEvents, ValueChangedEvent } from './mixins/CustomEventMixin';
+import { ThemableMixin } from '@vaadin/vaadin-themable-mixin';
 
 /**
  * `<vcf-slider>` Slider web component for the Vaadin platform.
@@ -10,21 +11,25 @@ import { CustomEventMixin, CustomEvents, ValueChangedEvent } from './mixins/Cust
  * @csspart knob - Knob elements.
  * @csspart knob-n - Nth knob element.
  *
+ * @cssprop [--vcf-slider-knob-alt-color=var(--lumo-error-color)] - Color of `::part(alt-knob)`.
+ * @cssprop [--vcf-slider-knob-color=var(--lumo-primary-color)] - Color of `::part(knob)`.
+ * @cssprop [--vcf-slider-knob-size=var(--lumo-space-m)] - Size (width, height) of `::part(knob)`.
+ * @cssprop [--vcf-slider-label-font-size=var(--lumo-font-size-s)] - Font size of `::part(label)`.
+ * @cssprop [--vcf-slider-line-alt-color=var(--lumo-contrast-30pct)] - Secondary background color of `::part(line)`.
+ * @cssprop [--vcf-slider-line-color=var(--lumo-contrast-50pct)] - Background color of `::part(line)`.
+ * @cssprop [--vcf-slider-line-height=var(--lumo-space-s)] - Width of `::part(line)`.
  * @cssprop [--vcf-slider-padding=var(--lumo-space-xs)] - Padding of `::part(container)`.
  * @cssprop [--vcf-slider-width=100%] - Width of `:host`.
- * @cssprop [--vcf-slider-line-height=var(--lumo-space-s)] - Width of `::part(line)`.
- * @cssprop [--vcf-slider-line-color=var(--lumo-contrast-50pct)] - Background color of `::part(line)`.
- * @cssprop [--vcf-slider-line-alt-color=var(--lumo-contrast-30pct)] - Secondary background color of `::part(line)`.
- * @cssprop [--vcf-slider-knob-size=var(--lumo-space-m)] - Size (width, height) of `::part(knob)`.
- * @cssprop [--vcf-slider-knob-color=var(--lumo-primary-color)] - Color of `::part(knob)`.
- * @cssprop [--vcf-slider-knob-alt-color=var(--lumo-error-color)] - Color of `::part(alt-knob)`.
  *
  * @event {ValueChangedEvent} value-changed - Fired when the slider value changes. Returns a single knob value and index.
- * @event {ValuesChangedEvent} values-changed - Fired when the slider value changes. Returns all knob values.
  */
 @customElement('vcf-slider')
-export class Slider extends CustomEventMixin(LitElement) {
+export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
+  /**
+   *
+   */
   @property({ type: Boolean, reflect: true }) labels = false;
+  @property({ type: Boolean, reflect: true }) vertical = false;
   @property({ type: Number }) value: string | number | number[] = 0;
   @property({ type: Number }) ranges = 0;
   @property({ type: Number }) step = 1;
@@ -33,7 +38,7 @@ export class Slider extends CustomEventMixin(LitElement) {
 
   @query('#knobs') private knobsContainer?: HTMLElement;
   @query('#line') private line?: HTMLElement;
-  @query('#line-color') private lineColor?: HTMLElement;
+  @query('#line-color') private lineColorElement?: HTMLElement;
 
   protected static is() {
     return 'vcf-slider';
@@ -44,9 +49,17 @@ export class Slider extends CustomEventMixin(LitElement) {
   }
 
   private knob?: HTMLElement;
-  private originalKnobOffsetX = 0;
-  private originalPointerX: number | null = 0;
+  private originalKnobOffsetXY = 0;
+  private originalPointerXY: number | null = 0;
   private knobCount = 1;
+
+  private get xy() {
+    return this.vertical ? 'y' : 'x';
+  }
+
+  private get pageXY() {
+    return this.vertical ? 'pageY' : 'pageX';
+  }
 
   private set knobs(value: number) {
     this.knobCount = value > 0 ? value : 1;
@@ -63,21 +76,27 @@ export class Slider extends CustomEventMixin(LitElement) {
         margin: var(--lumo-space-s) 0;
         width: var(--vcf-slider-width);
         /* PUBLIC */
+        --vcf-slider-knob-alt-color: var(--lumo-error-color);
+        --vcf-slider-knob-color: var(--lumo-primary-color);
+        --vcf-slider-knob-size: var(--lumo-space-m);
+        --vcf-slider-label-font-size: var(--lumo-font-size-s);
+        --vcf-slider-line-alt-color: var(--lumo-contrast-30pct);
+        --vcf-slider-line-color: var(--lumo-contrast-50pct);
+        --vcf-slider-line-height: var(--lumo-space-s);
         --vcf-slider-padding: var(--lumo-space-xs);
         --vcf-slider-width: 100%;
-        --vcf-slider-line-height: var(--lumo-space-s);
-        --vcf-slider-line-color: var(--lumo-contrast-50pct);
-        --vcf-slider-line-alt-color: var(--lumo-contrast-30pct);
-        --vcf-slider-knob-size: var(--lumo-space-m);
-        --vcf-slider-knob-color: var(--lumo-primary-color);
-        --vcf-slider-knob-alt-color: var(--lumo-error-color);
+        --vcf-slider-vertical-height: 200px;
         /* PRIVATE */
         --l-height: var(--vcf-slider-line-height);
         --k-size: calc(var(--vcf-slider-knob-size) * 2);
       }
 
+      :host * {
+        box-sizing: border-box;
+      }
+
       :host([labels]) {
-        padding-top: var(--lumo-size-s);
+        padding-top: calc(var(--vcf-slider-label-font-size) + 4px + var(--lumo-space-s));
       }
 
       #container {
@@ -130,12 +149,12 @@ export class Slider extends CustomEventMixin(LitElement) {
         flex-flow: column;
         align-items: center;
         position: absolute;
-        top: calc(-0.1 * var(--vcf-slider-knob-size) + calc(0.5 * var(--l-height)) - calc(2 * var(--lumo-space-m)));
-        border-radius: var(--lumo-border-radius-s);
+        bottom: calc(var(--k-size) * 0.5 + var(--lumo-space-xs));
+        border-radius: 2px;
         box-shadow: var(--lumo-box-shadow-xs);
         background-color: var(--lumo-base-color);
-        padding: 0 var(--lumo-space-s);
-        font-size: var(--lumo-font-size-s);
+        padding: 2px var(--lumo-space-s);
+        font-size: var(--vcf-slider-label-font-size);
         pointer-events: none;
         user-select: none;
       }
@@ -156,13 +175,63 @@ export class Slider extends CustomEventMixin(LitElement) {
         box-sizing: border-box;
         border: 3px solid transparent;
         border-color: transparent transparent var(--lumo-base-color) var(--lumo-base-color);
-        transform-origin: 0 0;
+        transform-origin: 2px 1px;
         transform: rotate(-45deg);
         box-shadow: -2px 2px 2px 0 var(--lumo-shade-20pct);
       }
 
       :host([labels]) [part~='label'] {
         display: flex;
+      }
+
+      /* VERTICAL */
+
+      :host([labels][vertical]) {
+        padding-top: 0px;
+        padding-right: calc(var(--vcf-slider-label-width) + 4px + var(--lumo-space-xs));
+      }
+
+      :host([vertical]) {
+        display: inline-flex;
+        width: max-content;
+        margin: var(--lumo-space-s);
+        height: var(--vcf-slider-vertical-height);
+      }
+
+      :host([vertical]) #line {
+        width: var(--l-height);
+        height: 100%;
+      }
+
+      :host([vertical]) [part~='knob'] {
+        left: calc(-0.5 * var(--k-size) + calc(0.5 * var(--l-height)));
+      }
+
+      :host([vertical]) [part~='label'] {
+        flex-flow: row;
+        left: calc(var(--k-size) * 0.5 + var(--lumo-space-s));
+        bottom: unset;
+        align-items: center;
+        border-radius: var(--lumo-border-radius-s);
+      }
+
+      :host([vertical]) [part~='label-triangle']::after {
+        content: unset;
+      }
+
+      :host([vertical]) [part~='label']::after {
+        content: '';
+        position: absolute;
+        left: 1px;
+        width: 0px;
+        height: 0px;
+        box-sizing: border-box;
+        border: 7px solid transparent;
+        border-color: transparent transparent var(--lumo-base-color) var(--lumo-base-color);
+        transform-origin: 4px -1px;
+        transform: rotate(45deg);
+        box-shadow: -2px 2px 2px 0 var(--lumo-shade-10pct);
+        border-radius: 2px;
       }
     `;
   }
@@ -200,8 +269,9 @@ export class Slider extends CustomEventMixin(LitElement) {
       if (step < 1) this.step = 1;
     }
 
-    if (props.has('value')) {
-      this.setValue();
+    if (props.has('value') || props.has('vertical')) {
+      if (!this.isSorted()) this.sort();
+      else this.setValue();
     }
   }
 
@@ -316,6 +386,7 @@ export class Slider extends CustomEventMixin(LitElement) {
   }
 
   private setValue(values = this.values) {
+    values = values.sort((a, b) => a - b);
     this.setLabelValues(values);
     this.knobIndexes.forEach(i => {
       this.setAriaValues(i, values);
@@ -327,32 +398,48 @@ export class Slider extends CustomEventMixin(LitElement) {
   }
 
   private setKnobPostion(i = 0, values = this.initialValue) {
-    const { min, max } = this;
-    const lineWidth = this.lineBounds!.width;
+    const { min, max, lineBounds } = this;
     const knob = this.knobElement(i) as HTMLElement;
     if (knob) {
-      const knobWidth = this.getBounds(knob).width;
-      const position = ((values[i] - min) / (max - min)) * lineWidth - knobWidth / 2;
-      knob.style.left = `${position}px`;
+      const knobBounds = this.getBounds(knob);
+      if (this.vertical) {
+        const position = ((values[i] - min) / (max - min)) * lineBounds.height - knobBounds.height / 2;
+        knob.style.top = 'unset';
+        knob.style.bottom = `${position}px`;
+        knob.style.removeProperty('left');
+      } else {
+        const position = ((values[i] - min) / (max - min)) * lineBounds.width - knobBounds.width / 2;
+        knob.style.left = `${position}px`;
+        knob.style.removeProperty('top');
+        knob.style.removeProperty('bottom');
+      }
     }
   }
 
   private setLabelPosition(i = 0, values = this.values) {
-    const { min, max } = this;
-    const lineWidth = this.lineBounds!.width;
+    const { min, max, lineBounds } = this;
     const label = this.labelElement(i) as HTMLElement;
     if (label) {
-      const labelWidth = this.getBounds(label).width;
-      const position = ((values[i] - min) / (max - min)) * lineWidth - labelWidth / 2;
-      label.style.left = `${position}px`;
+      const labelBounds = this.getBounds(label);
+      if (this.vertical) {
+        const position = ((values[i] - min) / (max - min)) * lineBounds.height - labelBounds.height / 2;
+        label.style.bottom = `${position}px`;
+        label.style.removeProperty('left');
+      } else {
+        const position = ((values[i] - min) / (max - min)) * lineBounds.width - labelBounds.width / 2;
+        label.style.left = `${position}px`;
+        label.style.removeProperty('bottom');
+      }
+      this.style.setProperty('--vcf-slider-label-width', `${labelBounds.width}px`);
     }
   }
 
   private setLineColors(values = this.values) {
-    const { knobs, min, max } = this;
+    const { knobs, min, max, lineColorElement } = this;
     const length = max - min;
     const lineColor = getComputedStyle(this).getPropertyValue('--vcf-slider-line-color').trim();
     const altLineColor = getComputedStyle(this).getPropertyValue('--vcf-slider-line-alt-color').trim();
+    const direction = this.vertical ? 'top' : 'right';
     let colors = '';
     let prevStop = '';
     const color = (i: number) => (i % 2 ? lineColor : knobs > 3 ? 'transparent' : altLineColor);
@@ -364,7 +451,7 @@ export class Slider extends CustomEventMixin(LitElement) {
       prevStop = stop;
     });
     colors += `transparent ${prevStop} 100%`;
-    this.lineColor!.style.background = `linear-gradient(to right, ${colors})`;
+    if (lineColorElement) lineColorElement.style.background = `linear-gradient(to ${direction}, ${colors})`;
   }
 
   private set dragging(state: boolean) {
@@ -373,18 +460,18 @@ export class Slider extends CustomEventMixin(LitElement) {
     toggleEvent(Slider.hasTouched ? 'touchend' : 'mouseup', this);
   }
 
-  private getPointerX(e: Event) {
-    let pointerX: number | null = null;
-    if (e instanceof MouseEvent) pointerX = (e as MouseEvent).pageX;
-    else if (e instanceof TouchEvent) pointerX = (e as TouchEvent).touches[0].pageX;
-    return pointerX;
+  private getPointerXY(e: Event) {
+    let pointerPos: number | null = null;
+    if (e instanceof MouseEvent) pointerPos = (e as MouseEvent)[this.pageXY];
+    else if (e instanceof TouchEvent) pointerPos = (e as TouchEvent).touches[0][this.pageXY];
+    return pointerPos;
   }
 
   private startDrag = (e: Event) => {
-    const { knobsContainer } = this;
+    const { knobsContainer, xy } = this;
     this.knob = e.target as HTMLElement;
-    this.originalPointerX = this.getPointerX(e);
-    this.originalKnobOffsetX = this.getBounds(this.knob).x - this.lineBounds!.x;
+    this.originalPointerXY = this.getPointerXY(e);
+    this.originalKnobOffsetXY = this.getBounds(this.knob)[xy] - this.lineBounds[xy];
 
     // Move current knob and label to top
     knobsContainer?.appendChild(this.knob);
@@ -392,50 +479,55 @@ export class Slider extends CustomEventMixin(LitElement) {
   };
 
   private drag = (e: Event) => {
-    const { knobIndex: i, knob, knobs, originalKnobOffsetX, originalPointerX, line, lineBounds } = this;
+    const { knobIndex: i, vertical, knob, knobs, originalKnobOffsetXY, originalPointerXY, xy, line, lineBounds } = this;
     if (knob && line) {
       const knobBounds = this.getBounds(knob);
-      let startX = -knobBounds.width / 2;
-      let endX = lineBounds!.width - knobBounds.width / 2;
+      const knobSize = vertical ? knobBounds.height : knobBounds.width;
+      const lineSize = vertical ? lineBounds.height : lineBounds.width;
+      const lineStart = -knobSize / 2;
+      const lineEnd = lineSize - knobSize / 2;
       const part = `knob-${i}`;
+      let start = vertical ? lineEnd : lineStart;
+      let end = vertical ? lineStart : lineEnd;
 
       // Set knob limits
       switch (part) {
         case 'knob-0': {
           if (knobs > 1) {
             const toKnob = line.querySelector('[part~="knob-1"]') as HTMLElement;
-            endX = this.getBounds(toKnob).x - lineBounds!.x;
+            end = this.getBounds(toKnob)[xy] - lineBounds[xy];
           }
           break;
         }
         case `knob-${knobs - 1}`: {
           if (knobs > 1) {
             const fromKnob = line.querySelector(`[part~="knob-${knobs - 2}"]`) as HTMLElement;
-            startX = this.getBounds(fromKnob).x - lineBounds!.x;
+            start = this.getBounds(fromKnob)[xy] - lineBounds[xy];
           }
           break;
         }
         default: {
           const fromKnob = line.querySelector(`[part~="knob-${i - 1}"]`) as HTMLElement;
           const toKnob = line.querySelector(`[part~="knob-${i + 1}"]`) as HTMLElement;
-          startX = this.getBounds(fromKnob).x - lineBounds!.x;
-          endX = this.getBounds(toKnob).x - lineBounds!.x;
+          start = this.getBounds(fromKnob)[xy] - lineBounds[xy];
+          end = this.getBounds(toKnob)[xy] - lineBounds[xy];
         }
       }
 
       // Calculate knob position
-      const pageX = this.getPointerX(e);
-      if (pageX && originalPointerX) {
-        let newPositionX = originalKnobOffsetX + (pageX - originalPointerX);
-        const startLimit = newPositionX <= startX;
-        const endLimit = newPositionX >= endX;
-        newPositionX = startLimit ? startX : endLimit ? endX : newPositionX;
+      const pageXY = this.getPointerXY(e);
+      if (pageXY && originalPointerXY) {
+        let newPositionXY = originalKnobOffsetXY + (pageXY - originalPointerXY);
+        let startLimit = vertical ? newPositionXY >= start : newPositionXY <= start;
+        let endLimit = vertical ? newPositionXY <= end : newPositionXY >= end;
+        newPositionXY = startLimit ? start : endLimit ? end : newPositionXY;
 
         // Calculate new value
         const { min, max, step, values } = this;
         const length = max - min;
-        const pct = (newPositionX + knobBounds.width / 2) / lineBounds!.width;
-        const value = Math.round(pct * length + min);
+        const pct = (newPositionXY + knobSize / 2) / lineSize;
+        let value = Math.round(pct * length + min);
+        if (vertical) value = max - value;
 
         // Step
         if (value === min || (value > min && Math.abs(value) % step === 0)) {
@@ -482,15 +574,16 @@ export class Slider extends CustomEventMixin(LitElement) {
 
   private createKnobElement(knobIndex: number) {
     const isAltKnob = knobIndex % 2 ? 'alt-knob' : '';
+    const handleEvent = this as { handleEvent: EventListener };
     return this.createElement(
       html`
         <div
           role="slider"
           part="knob ${isAltKnob} knob-${knobIndex}"
           tabindex="${knobIndex + 1}"
-          @mousedown="${this}"
-          @touchstart="${this}"
-          @keydown="${this}"
+          @mousedown="${handleEvent}"
+          @touchstart="${handleEvent}"
+          @keydown="${handleEvent}"
         ></div>
       `
     );
@@ -635,11 +728,19 @@ export class Slider extends CustomEventMixin(LitElement) {
   }
 
   private get lineBounds() {
-    return this.getBounds(this.line!);
+    return this.getBounds(this.line as HTMLElement);
   }
 
   private createElement(template: TemplateResult) {
     return (render(template, document.createElement('x')).parentNode as HTMLElement).firstElementChild as HTMLElement;
+  }
+
+  private sort() {
+    this.value = this.values.sort((a, b) => a - b);
+  }
+
+  private isSorted(values = this.values) {
+    return values.every((_, i, a) => !a[i - 1] || a[i] >= a[i - 1]);
   }
 }
 

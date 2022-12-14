@@ -50,6 +50,7 @@
     "test:watch": "run-s build:compile test:dev"
   },
   "dependencies": {
+    "@vaadin/vaadin-themable-mixin": "^23.2.10",
     "lit": "^2.4.1"
   },
   "devDependencies": {
