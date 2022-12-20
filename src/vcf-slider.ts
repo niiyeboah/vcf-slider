@@ -71,6 +71,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   private originalKnobOffsetXY = 0;
   private originalPointerXY: number | null = 0;
   private knobCount = 1;
+  private decimalCount = 0;
 
   private get xy() {
     return this.vertical ? 'y' : 'x';
@@ -287,6 +288,10 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   protected updated(props: PropertyValues) {
     const { ranges, step } = this;
 
+    if (props.has('step')) {
+      this.decimalCount = this.getDecimalCount(step);
+    }
+
     if (props.has('tooltips') && this.tooltips) {
       this.knobIndexes.forEach(i => this.setTooltipPosition(i, this.values));
     }
@@ -301,11 +306,6 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       this.setValue((this.value = this.initialValue));
     }
 
-    if (props.has('step')) {
-      if (!Number.isSafeInteger(step)) this.step = Math.round(step);
-      if (step < 1) this.step = 1;
-    }
-
     if (props.has('value') || props.has('vertical')) {
       if (!this.isSorted()) this.sort();
       else this.setValue();
@@ -313,7 +313,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   }
 
   /** @private */
-  passive = true;
+  passive = 'true';
 
   /** @private */
   handleEvent(e: Event) {
@@ -387,7 +387,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
     knobIndexes.forEach(i => {
       const tooltipElement = this.tooltipElement(i) as HTMLElement;
       const tooltipElementValue = tooltipElement.firstElementChild as HTMLSpanElement;
-      if (tooltipElement) tooltipElementValue.innerText = `${values[i]}`;
+      if (tooltipElement) tooltipElementValue.innerText = `${values[i].toFixed(this.decimalCount)}`;
     });
   }
 
@@ -568,35 +568,67 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       }
 
       // Calculate knob position
-      const pageXY = this.getPointerXY(e);
-      if (pageXY && originalPointerXY) {
-        let newPositionXY = originalKnobOffsetXY + (pageXY - originalPointerXY);
-        let startLimit = rtl ? newPositionXY >= start : newPositionXY <= start;
-        let endLimit = rtl ? newPositionXY <= end : newPositionXY >= end;
-        newPositionXY = startLimit ? start : endLimit ? end : newPositionXY;
+      requestAnimationFrame(() => {
+        const pageXY = this.getPointerXY(e);
+        if (pageXY && originalPointerXY) {
+          let newPositionXY = originalKnobOffsetXY + (pageXY - originalPointerXY);
+          let startLimit = rtl ? newPositionXY >= start : newPositionXY <= start;
+          let endLimit = rtl ? newPositionXY <= end : newPositionXY >= end;
+          newPositionXY = startLimit ? start : endLimit ? end : newPositionXY;
 
-        // Calculate new value
-        const { min, max, step, values } = this;
-        const length = max - min;
-        const pct = (newPositionXY + knobSize / 2) / lineSize;
-        let value = Math.round(pct * length + min);
-        if (rtl) value = max - value;
+          // Calculate new value
+          let multiplier = 0;
+          let { min, max, step, values } = this;
+          const length = max - min;
+          const pct = (newPositionXY + knobSize / 2) / lineSize;
+          let value = pct * length + min;
 
-        // Step
-        if (value === min || (value > min && Math.abs(value) % step === 0)) {
-          // Set new value & knob position
-          if (values[i] !== value) {
-            values[i] = value;
-            this.value = this.knobs === 1 ? value : [...values];
-            this.setKnobPostion(i);
+          if (rtl) value = max - value;
+
+          if (this.decimalCount) {
+            // Round to number of decimal places as step
+            value = this.round(value);
+
+            // To avoid problems with decimal math, multiplying to operate with integers.
+            multiplier = Math.max(this.getMultiplier(value), this.getMultiplier(step), this.getMultiplier(min));
+            values[i] = Math.round(values[i] * multiplier);
+            value = Math.round(value * multiplier);
+            step *= multiplier;
+            min *= multiplier;
+          } else {
+            value = Math.round(value);
           }
 
-          // Change line colors
-          this.setLineColors();
+          // Step
+          if (value === min || (value > min && Math.abs(value) % step === 0)) {
+            // Set new value & knob position
+            if (values[i] !== value) {
+              if (this.decimalCount) value /= multiplier;
+              values[i] = value;
+              this.value = this.knobs === 1 ? value : [...values];
+              this.setKnobPostion(i);
+            }
+          }
         }
-      }
+      });
     }
   };
+
+  private round(value: number) {
+    return parseFloat(value.toFixed(this.decimalCount));
+  }
+
+  private getMultiplier(value: number) {
+    let result = 0;
+    if (!isNaN(value)) result = 10 ** this.getDecimalCount(value);
+    return result;
+  }
+
+  private getDecimalCount(value: number) {
+    const s = String(value);
+    const i = s.indexOf('.');
+    return i === -1 ? 0 : s.length - i - 1;
+  }
 
   private get tooltip() {
     return this.tooltipElement(this.knobIndex) as HTMLElement;
