@@ -2,7 +2,7 @@
 
 [![npm version](https://badgen.net/npm/v/@vaadin-component-factory/vcf-slider)](https://www.npmjs.com/package/@vaadin-component-factory/vcf-slider) [![Published on Vaadin Directory](https://img.shields.io/badge/Vaadin%20Directory-published-00b4f0.svg)](https://vaadin.com/directory/component/vaadin-component-factoryvcf-slider)
 
-Slider web component for the Vaadin platform.
+Range slider web component for the Vaadin platform.
 
 <img src="https://user-images.githubusercontent.com/3392815/121072109-746c0900-c7d9-11eb-8d4e-8bb728fa99f1.png" alt="drawing" width="420"/>
 
