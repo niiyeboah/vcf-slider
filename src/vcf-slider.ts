@@ -10,11 +10,17 @@ import { ThemableMixin } from '@vaadin/vaadin-themable-mixin';
  * @csspart line - Line element.
  * @csspart knob - Knob elements.
  * @csspart knob-n - Nth knob element.
+ * @csspart tooltip - Knob tooltip containers.
+ * @csspart tooltip-n - Nth knob tooltip container.
+ * @csspart tooltip-value - Knob tooltip value elements.
+ * @csspart tooltip-value-n - Nth knob tooltip value element.
+ * @csspart tooltip-triangle - Knob tooltip triangle elements.
+ * @csspart tooltip-triangle-n - Nth knob tooltip triangle element.
  *
  * @cssprop [--vcf-slider-knob-alt-color=var(--lumo-error-color)] - Color of `::part(alt-knob)`.
  * @cssprop [--vcf-slider-knob-color=var(--lumo-primary-color)] - Color of `::part(knob)`.
  * @cssprop [--vcf-slider-knob-size=var(--lumo-space-m)] - Size (width, height) of `::part(knob)`.
- * @cssprop [--vcf-slider-label-font-size=var(--lumo-font-size-s)] - Font size of `::part(label)`.
+ * @cssprop [--vcf-slider-tooltip-font-size=var(--lumo-font-size-s)] - Font size of `::part(tooltip)`.
  * @cssprop [--vcf-slider-line-alt-color=var(--lumo-contrast-30pct)] - Secondary background color of `::part(line)`.
  * @cssprop [--vcf-slider-line-color=var(--lumo-contrast-50pct)] - Background color of `::part(line)`.
  * @cssprop [--vcf-slider-line-height=var(--lumo-space-s)] - Width of `::part(line)`.
@@ -25,15 +31,28 @@ import { ThemableMixin } from '@vaadin/vaadin-themable-mixin';
  */
 @customElement('vcf-slider')
 export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
-  /**
-   *
-   */
-  @property({ type: Boolean, reflect: true }) labels = false;
+  /** If `true`, show tooltips that display values above slider knobs. */
+  @property({ type: Boolean, reflect: true }) tooltips = false;
+
+  /** If `true`, change *orientation* of the range slider from horizontal to vertical. */
   @property({ type: Boolean, reflect: true }) vertical = false;
+
+  /** If `true`, reverse *direction* so that low to high values go from right to left. */
+  @property({ type: Boolean }) rtl = false;
+
+  /** Current value(s) of the slider. */
   @property({ type: Number }) value: string | number | number[] = 0;
+
+  /** Number of ranges (knobs) to display on the slider. */
   @property({ type: Number }) ranges = 0;
+
+  /** Specifies the granularity that the value must adhere to. */
   @property({ type: Number }) step = 1;
+
+  /** Maximum value. */
   @property({ type: Number }) min = 0;
+
+  /** Minimum value. */
   @property({ type: Number }) max = 100;
 
   @query('#knobs') private knobsContainer?: HTMLElement;
@@ -79,7 +98,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
         --vcf-slider-knob-alt-color: var(--lumo-error-color);
         --vcf-slider-knob-color: var(--lumo-primary-color);
         --vcf-slider-knob-size: var(--lumo-space-m);
-        --vcf-slider-label-font-size: var(--lumo-font-size-s);
+        --vcf-slider-tooltip-font-size: var(--lumo-font-size-s);
         --vcf-slider-line-alt-color: var(--lumo-contrast-30pct);
         --vcf-slider-line-color: var(--lumo-contrast-50pct);
         --vcf-slider-line-height: var(--lumo-space-s);
@@ -95,8 +114,8 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
         box-sizing: border-box;
       }
 
-      :host([labels]) {
-        padding-top: calc(var(--vcf-slider-label-font-size) + 4px + var(--lumo-space-s));
+      :host([tooltips]) {
+        padding-top: calc(var(--vcf-slider-tooltip-font-size) + 4px + var(--lumo-space-s));
       }
 
       #container {
@@ -121,9 +140,12 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
         border-radius: var(--lumo-border-radius-m);
       }
 
+      /* KNOBS */
+
       [part~='knob'] {
         position: absolute;
         display: flex;
+        right: 'unset';
         top: calc(-0.5 * var(--k-size) + calc(0.5 * var(--l-height)));
         width: var(--k-size);
         height: var(--k-size);
@@ -144,7 +166,9 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
         background-color: var(--vcf-slider-knob-alt-color);
       }
 
-      [part~='label'] {
+      /* TOOLTIPS */
+
+      [part~='tooltip'] {
         display: none;
         flex-flow: column;
         align-items: center;
@@ -154,19 +178,19 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
         box-shadow: var(--lumo-box-shadow-xs);
         background-color: var(--lumo-base-color);
         padding: 2px var(--lumo-space-s);
-        font-size: var(--vcf-slider-label-font-size);
+        font-size: var(--vcf-slider-tooltip-font-size);
         pointer-events: none;
         user-select: none;
       }
 
-      [part~='label-triangle'] {
+      [part~='tooltip-triangle'] {
         position: relative;
         margin: 0;
         box-sizing: border-box;
         background: var(--lumo-base-color);
       }
 
-      [part~='label-triangle']::after {
+      [part~='tooltip-triangle']::after {
         content: '';
         position: absolute;
         left: -4px;
@@ -180,15 +204,15 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
         box-shadow: -2px 2px 2px 0 var(--lumo-shade-20pct);
       }
 
-      :host([labels]) [part~='label'] {
+      :host([tooltips]) [part~='tooltip'] {
         display: flex;
       }
 
       /* VERTICAL */
 
-      :host([labels][vertical]) {
+      :host([tooltips][vertical]) {
         padding-top: 0px;
-        padding-right: calc(var(--vcf-slider-label-width) + 4px + var(--lumo-space-xs));
+        padding-right: calc(var(--vcf-slider-tooltips-width) + 4px + var(--lumo-space-xs));
       }
 
       :host([vertical]) {
@@ -204,10 +228,11 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       }
 
       :host([vertical]) [part~='knob'] {
+        bottom: unset;
         left: calc(-0.5 * var(--k-size) + calc(0.5 * var(--l-height)));
       }
 
-      :host([vertical]) [part~='label'] {
+      :host([vertical]) [part~='tooltip'] {
         flex-flow: row;
         left: calc(var(--k-size) * 0.5 + var(--lumo-space-s));
         bottom: unset;
@@ -215,11 +240,11 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
         border-radius: var(--lumo-border-radius-s);
       }
 
-      :host([vertical]) [part~='label-triangle']::after {
+      :host([vertical]) [part~='tooltip-triangle']::after {
         content: unset;
       }
 
-      :host([vertical]) [part~='label']::after {
+      :host([vertical]) [part~='tooltip']::after {
         content: '';
         position: absolute;
         left: 1px;
@@ -232,6 +257,16 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
         transform: rotate(45deg);
         box-shadow: -2px 2px 2px 0 var(--lumo-shade-10pct);
         border-radius: 2px;
+      }
+
+      /* RTL */
+
+      :host([rtl]:not([vertical])) [part~='knob'] {
+        left: unset;
+      }
+
+      :host([vertical][rtl]) [part~='knob'] {
+        top: unset;
       }
     `;
   }
@@ -247,11 +282,13 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
     `;
   }
 
-  updated(props: PropertyValues) {
+  protected firstUpdated() {}
+
+  protected updated(props: PropertyValues) {
     const { ranges, step } = this;
 
-    if (props.has('labels') && this.labels) {
-      this.knobIndexes.forEach(i => this.setLabelPosition(i, this.values));
+    if (props.has('tooltips') && this.tooltips) {
+      this.knobIndexes.forEach(i => this.setTooltipPosition(i, this.values));
     }
 
     if (props.has('ranges')) {
@@ -259,7 +296,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       else this.ranges = 0;
     }
 
-    if (props.has('ranges') || props.has('min') || props.has('max')) {
+    if (props.has('rtl') || props.has('ranges') || props.has('min') || props.has('max')) {
       this.setKnobElements();
       this.setValue((this.value = this.initialValue));
     }
@@ -345,12 +382,12 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
     return !Slider.hasTouched && (e as MouseEvent).button !== 0;
   }
 
-  private setLabelValues(values = this.values) {
+  private setTooltipValues(values = this.values) {
     const { knobIndexes } = this;
     knobIndexes.forEach(i => {
-      const labelElement = this.labelElement(i) as HTMLElement;
-      const labelElementValue = labelElement.firstElementChild as HTMLSpanElement;
-      if (labelElement) labelElementValue.innerText = `${values[i]}`;
+      const tooltipElement = this.tooltipElement(i) as HTMLElement;
+      const tooltipElementValue = tooltipElement.firstElementChild as HTMLSpanElement;
+      if (tooltipElement) tooltipElementValue.innerText = `${values[i]}`;
     });
   }
 
@@ -387,10 +424,10 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
 
   private setValue(values = this.values) {
     values = values.sort((a, b) => a - b);
-    this.setLabelValues(values);
+    this.setTooltipValues(values);
     this.knobIndexes.forEach(i => {
       this.setAriaValues(i, values);
-      this.setLabelPosition(i, values);
+      this.setTooltipPosition(i, values);
       this.setKnobPostion(i, values);
       this.setLineColors(values);
     });
@@ -402,44 +439,48 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
     const knob = this.knobElement(i) as HTMLElement;
     if (knob) {
       const knobBounds = this.getBounds(knob);
+      const knobSize = this.vertical ? knobBounds.height : knobBounds.width;
+      const lineSize = this.vertical ? lineBounds.height : lineBounds.width;
+      const position = ((values[i] - min) / (max - min)) * lineSize - knobSize / 2;
       if (this.vertical) {
-        const position = ((values[i] - min) / (max - min)) * lineBounds.height - knobBounds.height / 2;
-        knob.style.top = 'unset';
-        knob.style.bottom = `${position}px`;
+        knob.style[this.rtl ? 'bottom' : 'top'] = `${position}px`;
+        knob.style.removeProperty('right');
         knob.style.removeProperty('left');
       } else {
-        const position = ((values[i] - min) / (max - min)) * lineBounds.width - knobBounds.width / 2;
-        knob.style.left = `${position}px`;
-        knob.style.removeProperty('top');
+        knob.style[this.rtl ? 'right' : 'left'] = `${position}px`;
         knob.style.removeProperty('bottom');
+        knob.style.removeProperty('top');
       }
     }
   }
 
-  private setLabelPosition(i = 0, values = this.values) {
+  private setTooltipPosition(i = 0, values = this.values) {
     const { min, max, lineBounds } = this;
-    const label = this.labelElement(i) as HTMLElement;
-    if (label) {
-      const labelBounds = this.getBounds(label);
+    const tooltip = this.tooltipElement(i) as HTMLElement;
+    if (tooltip) {
+      const tooltipBounds = this.getBounds(tooltip);
+      const tooltipSize = this.vertical ? tooltipBounds.height : tooltipBounds.width;
+      const lineSize = this.vertical ? lineBounds.height : lineBounds.width;
+      const position = ((values[i] - min) / (max - min)) * lineSize - tooltipSize / 2;
       if (this.vertical) {
-        const position = ((values[i] - min) / (max - min)) * lineBounds.height - labelBounds.height / 2;
-        label.style.bottom = `${position}px`;
-        label.style.removeProperty('left');
+        tooltip.style[this.rtl ? 'bottom' : 'top'] = `${position}px`;
+        tooltip.style.removeProperty('right');
+        tooltip.style.removeProperty('left');
       } else {
-        const position = ((values[i] - min) / (max - min)) * lineBounds.width - labelBounds.width / 2;
-        label.style.left = `${position}px`;
-        label.style.removeProperty('bottom');
+        tooltip.style[this.rtl ? 'right' : 'left'] = `${position}px`;
+        tooltip.style.removeProperty('bottom');
+        tooltip.style.removeProperty('top');
       }
-      this.style.setProperty('--vcf-slider-label-width', `${labelBounds.width}px`);
+      this.style.setProperty('--vcf-slider-tooltip-width', `${tooltipBounds.width}px`);
     }
   }
 
   private setLineColors(values = this.values) {
-    const { knobs, min, max, lineColorElement } = this;
+    const { knobs, min, max, lineColorElement, vertical, rtl } = this;
     const length = max - min;
     const lineColor = getComputedStyle(this).getPropertyValue('--vcf-slider-line-color').trim();
     const altLineColor = getComputedStyle(this).getPropertyValue('--vcf-slider-line-alt-color').trim();
-    const direction = this.vertical ? 'top' : 'right';
+    const direction = vertical ? (rtl ? 'top' : 'bottom') : rtl ? 'left' : 'right';
     let colors = '';
     let prevStop = '';
     const color = (i: number) => (i % 2 ? lineColor : knobs > 3 ? 'transparent' : altLineColor);
@@ -473,13 +514,25 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
     this.originalPointerXY = this.getPointerXY(e);
     this.originalKnobOffsetXY = this.getBounds(this.knob)[xy] - this.lineBounds[xy];
 
-    // Move current knob and label to top
+    // Move current knob and tooltip to top
     knobsContainer?.appendChild(this.knob);
-    knobsContainer?.appendChild(this.label);
+    knobsContainer?.appendChild(this.tooltip);
   };
 
   private drag = (e: Event) => {
-    const { knobIndex: i, vertical, knob, knobs, originalKnobOffsetXY, originalPointerXY, xy, line, lineBounds } = this;
+    const {
+      knobIndex: i,
+      vertical,
+      rtl,
+      knob,
+      knobs,
+      originalKnobOffsetXY,
+      originalPointerXY,
+      xy,
+      line,
+      lineBounds,
+    } = this;
+
     if (knob && line) {
       const knobBounds = this.getBounds(knob);
       const knobSize = vertical ? knobBounds.height : knobBounds.width;
@@ -487,8 +540,8 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       const lineStart = -knobSize / 2;
       const lineEnd = lineSize - knobSize / 2;
       const part = `knob-${i}`;
-      let start = vertical ? lineEnd : lineStart;
-      let end = vertical ? lineStart : lineEnd;
+      let start = rtl ? lineEnd : lineStart;
+      let end = rtl ? lineStart : lineEnd;
 
       // Set knob limits
       switch (part) {
@@ -518,8 +571,8 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       const pageXY = this.getPointerXY(e);
       if (pageXY && originalPointerXY) {
         let newPositionXY = originalKnobOffsetXY + (pageXY - originalPointerXY);
-        let startLimit = vertical ? newPositionXY >= start : newPositionXY <= start;
-        let endLimit = vertical ? newPositionXY <= end : newPositionXY >= end;
+        let startLimit = rtl ? newPositionXY >= start : newPositionXY <= start;
+        let endLimit = rtl ? newPositionXY <= end : newPositionXY >= end;
         newPositionXY = startLimit ? start : endLimit ? end : newPositionXY;
 
         // Calculate new value
@@ -527,7 +580,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
         const length = max - min;
         const pct = (newPositionXY + knobSize / 2) / lineSize;
         let value = Math.round(pct * length + min);
-        if (vertical) value = max - value;
+        if (rtl) value = max - value;
 
         // Step
         if (value === min || (value > min && Math.abs(value) % step === 0)) {
@@ -545,12 +598,12 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
     }
   };
 
-  private get label() {
-    return this.labelElement(this.knobIndex) as HTMLElement;
+  private get tooltip() {
+    return this.tooltipElement(this.knobIndex) as HTMLElement;
   }
 
-  private labelElement(i = 0) {
-    return this.shadowRoot?.querySelector(`[part~=label-${i}]`) as HTMLElement;
+  private tooltipElement(i = 0) {
+    return this.shadowRoot?.querySelector(`[part~=tooltip-${i}]`) as HTMLElement;
   }
 
   private knobElement(i = 0) {
@@ -567,7 +620,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       knobsContainer.innerHTML = '';
       knobIndexes.map(i => {
         knobsContainer.appendChild(this.createKnobElement(i));
-        knobsContainer.appendChild(this.createKnobLabelElement(i));
+        knobsContainer.appendChild(this.createKnobTooltipElement(i));
       });
     }
   }
@@ -589,12 +642,12 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
     );
   }
 
-  private createKnobLabelElement(knobIndex: number) {
+  private createKnobTooltipElement(knobIndex: number) {
     return this.createElement(
       html`
-        <div part="label label-${knobIndex}">
-          <span part="label-value label-value-${knobIndex}"></span>
-          <div part="label-triangle label-triangle-${knobIndex}"></div>
+        <div part="tooltip tooltip-${knobIndex}">
+          <span part="tooltip-value tooltip-value-${knobIndex}"></span>
+          <div part="tooltip-triangle tooltip-triangle-${knobIndex}"></div>
         </div>
       `
     );
@@ -743,6 +796,8 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
     return values.every((_, i, a) => !a[i - 1] || a[i] >= a[i - 1]);
   }
 }
+
+export { ValueChangedEvent };
 
 declare global {
   interface HTMLElementTagNameMap {
