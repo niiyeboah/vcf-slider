@@ -64,7 +64,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   }
 
   protected static get version() {
-    return '1.0.6';
+    return '1.0.7';
   }
 
   private knob?: HTMLElement;
