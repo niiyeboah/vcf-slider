@@ -53,7 +53,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   @property({ type: Number }) min = 0;
 
   /** Minimum value. */
-  @property({ type: Number }) max = 100;
+  @property({ type: Number }) max = 50;
 
   @query('#knobs') private knobsContainer?: HTMLElement;
   @query('#line') private line?: HTMLElement;
@@ -289,6 +289,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
     const { ranges, step } = this;
 
     if (props.has('step')) {
+      this.step = this.step < 0 ? 1 : this.step;
       this.decimalCount = this.getDecimalCount(step);
     }
 
@@ -569,45 +570,56 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
 
       // Calculate knob position
       requestAnimationFrame(() => {
-        const pageXY = this.getPointerXY(e);
-        if (pageXY && originalPointerXY) {
-          let newPositionXY = originalKnobOffsetXY + (pageXY - originalPointerXY);
-          let startLimit = rtl ? newPositionXY >= start : newPositionXY <= start;
-          let endLimit = rtl ? newPositionXY <= end : newPositionXY >= end;
-          newPositionXY = startLimit ? start : endLimit ? end : newPositionXY;
+        const pointerXY = this.getPointerXY(e);
+        if (pointerXY && originalPointerXY) {
+          let newKnobPositionXY = originalKnobOffsetXY + (pointerXY - originalPointerXY);
+          let startLimit = rtl ? newKnobPositionXY >= start : newKnobPositionXY <= start;
+          let endLimit = rtl ? newKnobPositionXY <= end : newKnobPositionXY >= end;
+          newKnobPositionXY = startLimit ? start : endLimit ? end : newKnobPositionXY;
 
           // Calculate new value
           let multiplier = 0;
           let { min, max, step, values } = this;
-          const length = max - min;
-          const pct = (newPositionXY + knobSize / 2) / lineSize;
-          let value = pct * length + min;
+          let length = max - min;
+          const pct = (newKnobPositionXY + knobSize / 2) / lineSize;
+          let value = pct * length;
 
-          if (rtl) value = max - value;
+          // RTL
+          if (rtl) value = length - value;
 
+          // Multiplier
           if (this.decimalCount) {
-            // Round to number of decimal places as step
+            // Round to same number of decimal places as step
             value = this.round(value);
-
-            // To avoid problems with decimal math, multiplying to operate with integers.
+            // To avoid problems with decimal math, multiply to operate with integers
             multiplier = Math.max(this.getMultiplier(value), this.getMultiplier(step), this.getMultiplier(min));
-            values[i] = Math.round(values[i] * multiplier);
             value = Math.round(value * multiplier);
             step *= multiplier;
             min *= multiplier;
+            length *= multiplier;
           } else {
             value = Math.round(value);
           }
 
           // Step
-          if (value === min || (value > min && Math.abs(value) % step === 0)) {
-            // Set new value & knob position
-            if (values[i] !== value) {
-              if (this.decimalCount) value /= multiplier;
-              values[i] = value;
-              this.value = this.knobs === 1 ? value : [...values];
-              this.setKnobPostion(i);
-            }
+          if (value >= length) {
+            // Limit to max value
+            value = length;
+          } else if (!(value === min || (value > min && Math.abs(value) % step === 0))) {
+            // Round to step
+            value = Math.round(value / step) * step;
+          }
+
+          // Adjust value relative to min after step calculations
+          value += min;
+
+          // Remove multiplier
+          if (this.decimalCount) value /= multiplier;
+
+          // Set new value
+          if (values[i] !== value) {
+            values[i] = value;
+            this.value = this.knobs === 1 ? value : [...values];
           }
         }
       });
