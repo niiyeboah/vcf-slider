@@ -49,11 +49,11 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   /** Specifies the granularity that the value must adhere to. */
   @property({ type: Number }) step = 1;
 
-  /** Maximum value. */
+  /** Minimum value. */
   @property({ type: Number }) min = 0;
 
-  /** Minimum value. */
-  @property({ type: Number }) max = 50;
+  /** Maximum value. */
+  @property({ type: Number }) max = 100;
 
   @query('#knobs') private knobsContainer?: HTMLElement;
   @query('#line') private line?: HTMLElement;

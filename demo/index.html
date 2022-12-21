@@ -159,10 +159,17 @@
       <vcf-anchor-nav-section id="basic" name="Basic">
         <api-demo></api-demo>
       </vcf-anchor-nav-section>
-      <vcf-anchor-nav-section id="knob-label" name="Tooltips">
+      <vcf-anchor-nav-section id="tooltips" name="Tooltips">
         <api-demo>
           <template data-element="vcf-slider" data-target="host">
             <vcf-slider tooltips value="42"></vcf-slider>
+          </template>
+        </api-demo>
+      </vcf-anchor-nav-section>
+      <vcf-anchor-nav-section id="decimals" name="Decimals">
+        <api-demo>
+          <template data-element="vcf-slider" data-target="host">
+            <vcf-slider tooltips value="0" min="-20" max="20" step="1.25"></vcf-slider>
           </template>
         </api-demo>
       </vcf-anchor-nav-section>
