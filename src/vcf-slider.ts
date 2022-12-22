@@ -38,7 +38,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   @property({ type: Boolean, reflect: true }) vertical = false;
 
   /** If `true`, reverse *direction* so that low to high values go from right to left. */
-  @property({ type: Boolean }) rtl = false;
+  @property({ type: Boolean, reflect: true }) rtl = false;
 
   /** Current value(s) of the slider. */
   @property({ type: Number }) value: string | number | number[] = 0;
@@ -283,7 +283,9 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
     `;
   }
 
-  protected firstUpdated() {}
+  protected firstUpdated() {
+    this.initResizeObserver();
+  }
 
   protected updated(props: PropertyValues) {
     const { ranges, step } = this;
@@ -302,15 +304,20 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       else this.ranges = 0;
     }
 
-    if (props.has('rtl') || props.has('ranges') || props.has('min') || props.has('max')) {
+    if (props.has('ranges') || props.has('min') || props.has('max')) {
       this.setKnobElements();
       this.setValue((this.value = this.initialValue));
     }
 
-    if (props.has('value') || props.has('vertical')) {
+    if (props.has('value') || props.has('vertical') || props.has('rtl')) {
       if (!this.isSorted()) this.sort();
       else this.setValue();
     }
+  }
+
+  private initResizeObserver() {
+    const observer = new ResizeObserver(() => requestAnimationFrame(() => this.setValue()));
+    observer.observe(this);
   }
 
   /** @private */
@@ -424,7 +431,6 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   }
 
   private setValue(values = this.values) {
-    values = values.sort((a, b) => a - b);
     this.setTooltipValues(values);
     this.knobIndexes.forEach(i => {
       this.setAriaValues(i, values);
@@ -443,15 +449,9 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       const knobSize = this.vertical ? knobBounds.height : knobBounds.width;
       const lineSize = this.vertical ? lineBounds.height : lineBounds.width;
       const position = ((values[i] - min) / (max - min)) * lineSize - knobSize / 2;
-      if (this.vertical) {
-        knob.style[this.rtl ? 'bottom' : 'top'] = `${position}px`;
-        knob.style.removeProperty('right');
-        knob.style.removeProperty('left');
-      } else {
-        knob.style[this.rtl ? 'right' : 'left'] = `${position}px`;
-        knob.style.removeProperty('bottom');
-        knob.style.removeProperty('top');
-      }
+      this.resetPosition(knob);
+      if (this.vertical) knob.style[this.rtl ? 'bottom' : 'top'] = `${position}px`;
+      else knob.style[this.rtl ? 'right' : 'left'] = `${position}px`;
     }
   }
 
@@ -463,17 +463,18 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       const tooltipSize = this.vertical ? tooltipBounds.height : tooltipBounds.width;
       const lineSize = this.vertical ? lineBounds.height : lineBounds.width;
       const position = ((values[i] - min) / (max - min)) * lineSize - tooltipSize / 2;
-      if (this.vertical) {
-        tooltip.style[this.rtl ? 'bottom' : 'top'] = `${position}px`;
-        tooltip.style.removeProperty('right');
-        tooltip.style.removeProperty('left');
-      } else {
-        tooltip.style[this.rtl ? 'right' : 'left'] = `${position}px`;
-        tooltip.style.removeProperty('bottom');
-        tooltip.style.removeProperty('top');
-      }
+      this.resetPosition(tooltip);
+      if (this.vertical) tooltip.style[this.rtl ? 'bottom' : 'top'] = `${position}px`;
+      else tooltip.style[this.rtl ? 'right' : 'left'] = `${position}px`;
       this.style.setProperty('--vcf-slider-tooltip-width', `${tooltipBounds.width}px`);
     }
+  }
+
+  private resetPosition(element: HTMLElement) {
+    element.style.removeProperty('left');
+    element.style.removeProperty('top');
+    element.style.removeProperty('right');
+    element.style.removeProperty('bottom');
   }
 
   private setLineColors(values = this.values) {
@@ -578,8 +579,9 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
           newKnobPositionXY = startLimit ? start : endLimit ? end : newKnobPositionXY;
 
           // Calculate new value
+          let { min, max, step, values: originalValues } = this;
+          let values = [...originalValues];
           let multiplier = 0;
-          let { min, max, step, values } = this;
           let length = max - min;
           const pct = (newKnobPositionXY + knobSize / 2) / lineSize;
           let value = pct * length;
@@ -619,7 +621,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
           // Set new value
           if (values[i] !== value) {
             values[i] = value;
-            this.value = this.knobs === 1 ? value : [...values];
+            this.value = this.knobs === 1 ? value : values;
           }
         }
       });
