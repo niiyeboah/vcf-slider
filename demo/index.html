@@ -48,6 +48,11 @@
           font-weight: bold;
         }
 
+        api-docs::part(tab-panel) {
+          max-height: 500px;
+          overflow: auto;
+        }
+
         api-demo {
           margin: 0;
         }
@@ -162,7 +167,7 @@
       <vcf-anchor-nav-section id="tooltips" name="Tooltips">
         <api-demo>
           <template data-element="vcf-slider" data-target="host">
-            <vcf-slider tooltips value="42"></vcf-slider>
+            <vcf-slider tooltips tooltips-always-visible value="42"></vcf-slider>
           </template>
         </api-demo>
       </vcf-anchor-nav-section>
