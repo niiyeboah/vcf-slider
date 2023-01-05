@@ -1,7 +1,10 @@
-import { html, css, PropertyValues, LitElement, render, TemplateResult } from 'lit';
+import { html, svg, css, PropertyValues, LitElement, render, TemplateResult, nothing } from 'lit';
 import { query, property, customElement } from 'lit/decorators.js';
 import { CustomEventMixin, CustomEvents, ValueChangedEvent } from './mixins/CustomEventMixin';
 import { ThemableMixin } from '@vaadin/vaadin-themable-mixin';
+import { scaleLinear } from 'd3-scale';
+import { axisBottom, axisLeft } from 'd3-axis';
+import { select } from 'd3-selection';
 
 /**
  * `<vcf-slider>` Slider web component for the Vaadin platform.
@@ -15,16 +18,19 @@ import { ThemableMixin } from '@vaadin/vaadin-themable-mixin';
  * @csspart tooltip-triangle-n - Nth knob tooltip triangle element.
  * @csspart tooltip-value - Knob tooltip value elements.
  * @csspart tooltip-value-n - Nth knob tooltip value element.
+ * @csspart ticks-container - SVG element used for ticks.
+ * @csspart ticks - SVG group element where ticks are generated.
  *
  * @cssprop [--vcf-slider-knob-alt-color=var(--lumo-error-color)] - Color of `::part(alt-knob)`.
  * @cssprop [--vcf-slider-knob-color=var(--lumo-primary-color)] - Color of `::part(knob)`.
  * @cssprop [--vcf-slider-knob-size=var(--lumo-space-m)] - Size (width, height) of `::part(knob)`.
  * @cssprop [--vcf-slider-tooltip-font-size=var(--lumo-font-size-s)] - Font size of `::part(tooltip)`.
- * @cssprop [--vcf-slider-line-alt-color=var(--lumo-contrast-30pct)] - Secondary background color of `::part(line)`.
- * @cssprop [--vcf-slider-line-color=var(--lumo-contrast-50pct)] - Background color of `::part(line)`.
- * @cssprop [--vcf-slider-line-height=var(--lumo-space-s)] - Width of `::part(line)`.
- * @cssprop [--vcf-slider-padding=var(--lumo-space-xs)] - Padding of `::part(container)`.
+ * @cssprop [--vcf-slider-line-alt-color=var(--lumo-contrast-30pct)] - Secondary background color of `::part(container)`.
+ * @cssprop [--vcf-slider-line-color=var(--lumo-contrast-50pct)] - Background color of `::part(container)`.
+ * @cssprop [--vcf-slider-line-height=var(--lumo-space-s)] - Width of `::part(container)`.
+ * @cssprop [--vcf-slider-padding=var(--lumo-space-xs)] - Padding of `:host`.
  * @cssprop [--vcf-slider-width=100%] - Width of `:host`.
+ * @cssprop [--vcf-slider-ticks-padding=10px] - Padding for range slider when `ticks` are enabled.
  *
  * @event {ValueChangedEvent} value-changed - Fired when the slider value changes. Returns a single knob value and index.
  */
@@ -35,6 +41,9 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
 
   /** If `true`, always show tooltips above slider knobs. */
   @property({ type: Boolean, reflect: true, attribute: 'tooltips-always-visible' }) tooltipsAlwaysVisible = false;
+
+  /** If `true`, show ticks for values on range slider. */
+  @property({ type: Boolean, reflect: true }) ticks = false;
 
   /** If `true`, change *orientation* of the range slider from horizontal to vertical. */
   @property({ type: Boolean, reflect: true }) vertical = false;
@@ -57,8 +66,9 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   /** Maximum value. */
   @property({ type: Number }) max = 100;
 
-  @query('#knobs') private knobsContainer?: HTMLElement;
-  @query('#container') private container?: HTMLElement;
+  @query('#knobs') private $knobsContainer!: HTMLElement;
+  @query('#container') private $container!: HTMLElement;
+  @query('#ticks') private $ticks!: SVGGElement;
 
   protected static is() {
     return 'vcf-slider';
@@ -97,6 +107,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
     return css`
       :host {
         display: flex;
+        flex-flow: column;
         margin: var(--lumo-space-s) 0;
         padding: var(--vcf-slider-padding);
         width: var(--vcf-slider-width);
@@ -113,6 +124,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
         --vcf-slider-padding: var(--lumo-space-xs);
         --vcf-slider-width: 100%;
         --vcf-slider-vertical-height: 200px;
+        --vcf-slider-ticks-padding: 10px;
         /* PRIVATE PROPERTIES */
         --l-height: var(--vcf-slider-line-height);
         --k-size: calc(var(--vcf-slider-knob-size) * 2);
@@ -123,7 +135,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       }
 
       :host([tooltips][tooltips-always-visible]) {
-        padding-top: calc(var(--vcf-slider-tooltip-font-size) + 4px + var(--lumo-space-s));
+        padding-top: calc(var(--vcf-slider-tooltip-font-size) + 4px + var(--lumo-space-m));
       }
 
       #container {
@@ -228,20 +240,22 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       /* VERTICAL */
 
       :host([vertical][tooltips][tooltips-always-visible]) {
-        padding-top: 0px;
-        padding-right: calc(var(--vcf-slider-tooltips-width) + 4px + var(--lumo-space-xs));
+        padding-top: var(--vcf-slider-padding);
+        padding-right: calc(var(--vcf-slider-tooltip-width) + 4px + var(--lumo-space-m));
       }
 
       :host([vertical]) {
         display: inline-flex;
+        flex-flow: row;
         width: max-content;
-        margin: var(--lumo-space-s);
+        margin: 0 var(--lumo-space-s);
         height: var(--vcf-slider-vertical-height);
       }
 
       :host([vertical]) #container {
         width: var(--l-height);
         height: 100%;
+        order: 1;
       }
 
       :host([vertical]) [part~='knob'] {
@@ -285,6 +299,45 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       :host([vertical][rtl]) [part~='knob'] {
         top: unset;
       }
+
+      /* TICKS */
+
+      :host([ticks]:not([vertical])) #container {
+        width: calc(100% - var(--vcf-slider-ticks-padding) * 2);
+        margin: 0 var(--vcf-slider-ticks-padding);
+      }
+
+      #ticks-container {
+        width: 100%;
+        height: 20px;
+        margin: var(--lumo-space-s) 0 0 0;
+      }
+
+      #ticks-container path {
+        display: none;
+      }
+
+      #ticks {
+        transform: translate(var(--vcf-slider-ticks-padding), 0);
+      }
+
+      /* VERTICAL TICKS */
+
+      :host([vertical][ticks]) #container {
+        height: calc(100% - 10px);
+        margin: 5px 0;
+      }
+
+      :host([vertical]) #ticks {
+        transform: translate(calc(var(--vcf-slider-ticks-padding) * 2), 5px);
+      }
+
+      :host([vertical]) #ticks-container {
+        width: calc(var(--vcf-slider-ticks-padding) * 2);
+        height: 100%;
+        margin: 0 var(--lumo-space-s) 0 0;
+        order: 0;
+      }
     `;
   }
 
@@ -293,6 +346,13 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       <div id="container" part="container">
         <div id="knobs" part="knobs"></div>
       </div>
+      ${this.ticks
+        ? svg`
+          <svg id="ticks-container" part="ticks-container">
+            <g id="ticks" part="ticks"></g>
+          </svg>
+        `
+        : nothing}
     `;
   }
 
@@ -326,11 +386,55 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       if (!this.isSorted()) this.sort();
       else this.setValue();
     }
+
+    if (props.has('ticks') || props.has('rtl')) {
+      this.setTicks();
+    }
   }
 
   private initResizeObserver() {
-    const observer = new ResizeObserver(() => requestAnimationFrame(() => this.setValue()));
+    const observer = new ResizeObserver(() =>
+      requestAnimationFrame(() => {
+        this.setTicks();
+        this.setValue();
+      })
+    );
     observer.observe(this);
+  }
+
+  private get tickElements() {
+    return Array.from(this.$ticks?.querySelectorAll('.tick'));
+  }
+
+  private get maxTickElement() {
+    return this.tickElements[this.rtl ? 0 : this.tickElements.length - 1] as SVGGElement;
+  }
+
+  private setTicks() {
+    if (this.ticks) {
+      this.createTicks();
+      // Set ticks padding
+      const maxTickBounds = this.maxTickElement.getBoundingClientRect();
+      const ticksPadding = maxTickBounds.width / 2;
+      this.style.setProperty('--vcf-slider-ticks-padding', `${ticksPadding}px`);
+      // Reset ticks with new padding
+      this.createTicks();
+    }
+  }
+
+  private createTicks() {
+    const { min, max, rtl, vertical, $ticks, $container } = this;
+    const start = rtl ? max : min;
+    const end = rtl ? min : max;
+    if (vertical) {
+      const linear = scaleLinear().domain([start, end]).range([0, $container.clientHeight]);
+      const axis = axisLeft(linear);
+      axis(select($ticks));
+    } else {
+      const linear = scaleLinear().domain([start, end]).range([0, $container.clientWidth]);
+      const axis = axisBottom(linear);
+      axis(select($ticks));
+    }
   }
 
   private eventListenerObject(passive = true) {
@@ -505,7 +609,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   }
 
   private setBackgroundColors(values = this.values) {
-    const { knobs, min, max, container, vertical, rtl } = this;
+    const { knobs, min, max, $container, vertical, rtl } = this;
     const length = max - min;
     const lineColor = getComputedStyle(this).getPropertyValue('--vcf-slider-line-color').trim();
     const altLineColor = getComputedStyle(this).getPropertyValue('--vcf-slider-line-alt-color').trim();
@@ -521,7 +625,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       prevStop = stop;
     });
     colors += `transparent ${prevStop} 100%`;
-    if (container) container.style.backgroundImage = `linear-gradient(to ${direction}, ${colors})`;
+    $container.style.backgroundImage = `linear-gradient(to ${direction}, ${colors})`;
   }
 
   private get dragging() {
@@ -544,14 +648,14 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   }
 
   private startDrag = (e: Event) => {
-    const { knobsContainer, xy } = this;
+    const { $knobsContainer, xy } = this;
     this.knob = e.target as HTMLElement;
     this.originalPointerXY = this.getPointerXY(e);
     this.originalKnobOffsetXY = this.getBounds(this.knob)[xy] - this.containerBounds[xy];
 
     // Move current knob and tooltip to top
-    knobsContainer?.appendChild(this.knob);
-    knobsContainer?.appendChild(this.tooltip);
+    $knobsContainer?.appendChild(this.knob);
+    $knobsContainer?.appendChild(this.tooltip);
     this.setActive(true);
   };
 
@@ -565,11 +669,11 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       originalKnobOffsetXY,
       originalPointerXY,
       xy,
-      container,
+      $container,
       containerBounds,
     } = this;
 
-    if (knob && container) {
+    if (knob) {
       const knobBounds = this.getBounds(knob);
       const knobSize = vertical ? knobBounds.height : knobBounds.width;
       const lineSize = vertical ? containerBounds.height : containerBounds.width;
@@ -583,21 +687,21 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       switch (part) {
         case 'knob-0': {
           if (knobs > 1) {
-            const toKnob = container.querySelector('[part~="knob-1"]') as HTMLElement;
+            const toKnob = $container.querySelector('[part~="knob-1"]') as HTMLElement;
             end = this.getBounds(toKnob)[xy] - containerBounds[xy];
           }
           break;
         }
         case `knob-${knobs - 1}`: {
           if (knobs > 1) {
-            const fromKnob = container.querySelector(`[part~="knob-${knobs - 2}"]`) as HTMLElement;
+            const fromKnob = $container.querySelector(`[part~="knob-${knobs - 2}"]`) as HTMLElement;
             start = this.getBounds(fromKnob)[xy] - containerBounds[xy];
           }
           break;
         }
         default: {
-          const fromKnob = container.querySelector(`[part~="knob-${i - 1}"]`) as HTMLElement;
-          const toKnob = container.querySelector(`[part~="knob-${i + 1}"]`) as HTMLElement;
+          const fromKnob = $container.querySelector(`[part~="knob-${i - 1}"]`) as HTMLElement;
+          const toKnob = $container.querySelector(`[part~="knob-${i + 1}"]`) as HTMLElement;
           start = this.getBounds(fromKnob)[xy] - containerBounds[xy];
           end = this.getBounds(toKnob)[xy] - containerBounds[xy];
         }
@@ -695,12 +799,12 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   }
 
   private setKnobElements() {
-    const { knobIndexes, knobsContainer } = this;
-    if (knobsContainer) {
-      knobsContainer.innerHTML = '';
+    const { knobIndexes, $knobsContainer } = this;
+    if ($knobsContainer) {
+      $knobsContainer.innerHTML = '';
       knobIndexes.map(i => {
-        knobsContainer.appendChild(this.createKnobElement(i));
-        knobsContainer.appendChild(this.createKnobTooltipElement(i));
+        $knobsContainer.appendChild(this.createKnobElement(i));
+        $knobsContainer.appendChild(this.createKnobTooltipElement(i));
       });
     }
   }
@@ -886,7 +990,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   }
 
   private get containerBounds() {
-    return this.getBounds(this.container as HTMLElement);
+    return this.getBounds(this.$container as HTMLElement);
   }
 
   private createElement(template: TemplateResult) {

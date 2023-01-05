@@ -48,13 +48,46 @@
           font-weight: bold;
         }
 
+        api-docs::part(tab-panel),
+        api-demo::part(tab-panel) {
+          border-bottom-right-radius: var(--lumo-border-radius);
+        }
+
+        api-docs {
+          box-shadow: var(--lumo-box-shadow-s);
+          background: var(--lumo-primary-color);
+          border-radius: var(--lumo-border-radius);
+        }
+
         api-docs::part(tab-panel) {
-          max-height: 500px;
+          height: 500px;
           overflow: auto;
+        }
+
+        api-docs::part(header) {
+          display: none;
+        }
+
+        api-docs::part(docs-description) {
+          color: var(--lumo-primary-contrast-color);
+        }
+
+        api-docs::part(docs-container) {
+          background: #fff;
+          border-bottom-left-radius: var(--lumo-border-radius);
+          border-bottom-right-radius: var(--lumo-border-radius);
+        }
+
+        api-docs::part(tabs-container)::part(tabs) {
+          background: var(--lumo-shade-5pct);
         }
 
         api-demo {
           margin: 0;
+        }
+
+        api-demo[collapsed]::part(demo-tabs) {
+          display: none;
         }
 
         api-demo::part(header) {
@@ -63,6 +96,15 @@
 
         api-demo::part(demo-output) {
           border-top: none;
+          position: relative;
+          padding-bottom: var(--lumo-space-xl);
+        }
+
+        api-demo::part(collapse-btn) {
+          position: absolute;
+          right: var(--lumo-space-xs);
+          bottom: 0;
+          cursor: pointer;
         }
 
         vcf-anchor-nav {
@@ -79,6 +121,34 @@
         vcf-anchor-nav-section {
           height: auto;
           background-color: var(--lumo-base-color);
+          border-bottom: 1px solid var(--lumo-primary-color-50pct);
+          padding: var(--lumo-space-l) 0;
+          box-sizing: border-box;
+        }
+
+        vcf-anchor-nav-section p {
+          margin: 0 0 var(--lumo-space-l) 0;
+        }
+
+        vcf-anchor-nav-section blockquote {
+          display: flex;
+          align-items: center;
+          width: 100%;
+          box-sizing: border-box;
+          margin-left: 0;
+          padding: var(--lumo-space-s) var(--lumo-space-m);
+          border-left: 2px solid var(--lumo-primary-color);
+          background: var(--lumo-primary-color-10pct);
+          border-radius: 0 var(--lumo-border-radius) var(--lumo-border-radius) 0;
+        }
+
+        vcf-anchor-nav-section blockquote b {
+          color: var(--lumo-primary-color);
+          margin-right: var(--lumo-space-m);
+        }
+
+        vcf-anchor-nav-section blockquote code {
+          word-wrap: break-word;
         }
 
         #elementName {
@@ -126,6 +196,10 @@
           opacity: 0;
         }
 
+        span.no-header {
+          display: none;
+        }
+
         @media only screen and (max-width: 768px) {
           h1.main {
             align-items: flex-start;
@@ -162,33 +236,72 @@
       </h1>
       <api-docs id="API" slot="header"></api-docs>
       <vcf-anchor-nav-section id="basic" name="Basic">
+        <span slot="header" class="no-header"></span>
         <api-demo></api-demo>
       </vcf-anchor-nav-section>
       <vcf-anchor-nav-section id="tooltips" name="Tooltips">
-        <api-demo>
+        <span slot="header" class="no-header"></span>
+        <p>
+          The <code>tooltips</code> attribute can be used to display tooltips above the slider knobs on hover or when active.
+        </p>
+        <blockquote>
+          <b>NOTE</b>
+          <span>Enabling <code>tooltips-always-visible</code> will change the tooltip behavior so they will always be shown.</span>
+        </blockquote>
+        <api-demo collapsed>
           <template data-element="vcf-slider" data-target="host">
             <vcf-slider tooltips tooltips-always-visible value="42"></vcf-slider>
           </template>
         </api-demo>
       </vcf-anchor-nav-section>
       <vcf-anchor-nav-section id="decimals" name="Decimals">
-        <api-demo>
+        <span slot="header" class="no-header"></span>
+        <p>
+          Decimal values can be used for the <code>step</code>, <code>min</code> and <code>max</code> properties.
+        </p>
+        <api-demo collapsed>
           <template data-element="vcf-slider" data-target="host">
-            <vcf-slider tooltips value="0" min="-20" max="20" step="1.25"></vcf-slider>
+            <vcf-slider tooltips value="0" min="-22.5" max="22.5" step="1.25"></vcf-slider>
           </template>
         </api-demo>
       </vcf-anchor-nav-section>
       <vcf-anchor-nav-section id="range" name="Range">
-        <api-demo>
+        <span slot="header" class="no-header"></span>
+        <p>
+          The <code>ranges</code> attribute can be used to add sets of <i>two knobs</i> that represent ranges within the min and max values.
+        </p>
+        <api-demo collapsed>
           <template data-element="vcf-slider" data-target="host">
             <vcf-slider tooltips ranges="1"></vcf-slider>
           </template>
         </api-demo>
       </vcf-anchor-nav-section>
-      <vcf-anchor-nav-section id="vertical" name="Vertical">
-        <api-demo>
+      <vcf-anchor-nav-section id="ticks" name="Ticks">
+        <span slot="header" class="no-header"></span>
+        <p>
+          Enable <code>ticks</code> to display ticks with labels on the range slider.
+        </p>
+        <api-demo collapsed>
           <template data-element="vcf-slider" data-target="host">
-            <vcf-slider tooltips ranges="2" vertical rtl></vcf-slider>
+            <vcf-slider tooltips ticks min="0" max="500"></vcf-slider>
+          </template>
+        </api-demo>
+      </vcf-anchor-nav-section>
+      <vcf-anchor-nav-section id="vertical" name="Vertical">
+        <span slot="header" class="no-header"></span>
+        <p>
+          Enable <code>vertical</code> mode can be used to change the <i>orientation</i> of the range slider from horizontal to vertical.
+        </p>
+        <blockquote>
+          <b>NOTE</b>
+          <span>
+            To make the range slider values go from bottom to top (right to left when <code>vertical</code> disabled) use the <code>rtl</code>
+            mode.
+          </span>
+        </blockquote>
+        <api-demo collapsed>
+          <template data-element="vcf-slider" data-target="host">
+            <vcf-slider tooltips tooltips-always-visible ranges="2" vertical rtl ticks></vcf-slider>
           </template>
         </api-demo>
       </vcf-anchor-nav-section>
