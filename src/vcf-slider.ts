@@ -132,7 +132,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
         box-sizing: border-box;
       }
 
-      :host([tooltips][tooltips-always-visible]) {
+      :host([tooltips-always-visible]) {
         padding-top: calc(var(--vcf-slider-tooltip-font-size) + 4px + var(--lumo-space-m));
       }
 
@@ -194,6 +194,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
         opacity: 1;
       }
 
+      :host([tooltips-always-visible]) [part~='tooltip'],
       :host([tooltips]) [part~='tooltip'] {
         display: flex;
       }
@@ -238,7 +239,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
 
       /* VERTICAL */
 
-      :host([vertical][tooltips][tooltips-always-visible]) {
+      :host([vertical][tooltips-always-visible]) {
         padding-top: var(--vcf-slider-padding);
         padding-right: calc(var(--vcf-slider-tooltip-width) + 4px + var(--lumo-space-m));
       }
@@ -375,8 +376,9 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       this.decimalCount = this.getDecimalCount(step);
     }
 
-    if (props.has('tooltips') && this.tooltips) {
-      this.knobIndexes.forEach(i => this.setTooltipPosition(i, this.values));
+    if (props.has('tooltips') || props.has('tooltipsAlwaysVisible')) {
+      this.setKnobElements();
+      this.setValue();
     }
 
     if (props.has('ranges')) {
@@ -529,12 +531,14 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   }
 
   private setTooltipValues(values = this.values) {
-    const { knobIndexes } = this;
-    knobIndexes.forEach(i => {
-      const tooltipElement = this.tooltipElement(i) as HTMLElement;
-      const tooltipElementValue = tooltipElement.firstElementChild as HTMLSpanElement;
-      if (tooltipElement) tooltipElementValue.innerText = `${values[i].toFixed(this.decimalCount)}`;
-    });
+    const { knobIndexes, tooltipsEnabled } = this;
+    if (tooltipsEnabled) {
+      knobIndexes.forEach(i => {
+        const tooltipElement = this.tooltipElement(i) as HTMLElement;
+        const tooltipElementValue = tooltipElement.firstElementChild as HTMLSpanElement;
+        if (tooltipElement) tooltipElementValue.innerText = `${values[i].toFixed(this.decimalCount)}`;
+      });
+    }
   }
 
   private setAriaValues(i = 0, values = this.values) {
@@ -655,15 +659,15 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   }
 
   private startDrag = (e: Event) => {
-    const { $knobsContainer, xy } = this;
+    const { $knobsContainer, xy, tooltip } = this;
     this.knob = e.target as HTMLElement;
     this.originalPointerXY = this.getPointerXY(e);
     this.originalKnobOffsetXY = this.getBounds(this.knob)[xy] - this.containerBounds[xy];
+    this.setActive(true);
 
     // Move current knob and tooltip to top
     $knobsContainer?.appendChild(this.knob);
-    $knobsContainer?.appendChild(this.tooltip);
-    this.setActive(true);
+    if (tooltip) $knobsContainer?.appendChild(tooltip);
   };
 
   private drag = (e: Event) => {
@@ -789,8 +793,12 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
     return i === -1 ? 0 : s.length - i - 1;
   }
 
+  private get tooltipsEnabled() {
+    return this.tooltips || this.tooltipsAlwaysVisible;
+  }
+
   private get tooltip() {
-    return this.tooltipElement(this.knobIndex) as HTMLElement;
+    return this.tooltipsEnabled ? (this.tooltipElement(this.knobIndex) as HTMLElement) : null;
   }
 
   private tooltipElement(i = 0) {
@@ -806,12 +814,12 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   }
 
   private setKnobElements() {
-    const { knobIndexes, $knobsContainer } = this;
+    const { knobIndexes, $knobsContainer, tooltipsEnabled } = this;
     if ($knobsContainer) {
       $knobsContainer.innerHTML = '';
       knobIndexes.map(i => {
         $knobsContainer.appendChild(this.createKnobElement(i));
-        $knobsContainer.appendChild(this.createKnobTooltipElement(i));
+        if (tooltipsEnabled) $knobsContainer.appendChild(this.createKnobTooltipElement(i));
       });
     }
   }
@@ -942,7 +950,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
     if (this.knob) {
       if (active) {
         this.knob.classList.add('active');
-        this.tooltip.classList.add('active');
+        this.tooltip?.classList.add('active');
         if (timeout) {
           // Debouncer timer
           clearTimeout(this.tooltipActiveTimeout);
@@ -950,7 +958,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
         }
       } else if (!(this.knob.matches(':hover') || this.dragging)) {
         this.knob.classList.remove('active');
-        this.tooltip.classList.remove('active');
+        this.tooltip?.classList.remove('active');
       }
     }
   }
