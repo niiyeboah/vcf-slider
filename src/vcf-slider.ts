@@ -84,8 +84,6 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   private knobCount = 1;
   private decimalCount = 0;
   private tooltipActiveTimeout?: number = 0;
-  private passiveHandleEvent = this.eventListenerObject();
-  private handleEvent = this.eventListenerObject(false);
 
   private get xy() {
     return this.vertical ? 'y' : 'x';
@@ -166,6 +164,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
         height: var(--k-size);
         user-select: none;
         filter: brightness(1);
+        touch-action: none;
       }
 
       [part~='knob']:hover,
@@ -437,11 +436,8 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
     }
   }
 
-  private eventListenerObject(passive = true) {
-    return { passive, handleEvent: (e: Event) => this.eventListener(e) } as EventListenerObject;
-  }
-
-  private eventListener(e: Event) {
+  /** @private */
+  handleEvent(e: Event) {
     const knob = e.target as HTMLElement;
     switch (e.type) {
       case 'mousedown':
@@ -634,8 +630,8 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
 
   private set dragging(state: boolean) {
     const toggleEvent = state ? document.addEventListener : document.removeEventListener;
-    toggleEvent(Slider.hasTouched ? 'touchmove' : 'mousemove', this.passiveHandleEvent);
-    toggleEvent(Slider.hasTouched ? 'touchend' : 'mouseup', this.passiveHandleEvent);
+    toggleEvent(Slider.hasTouched ? 'touchmove' : 'mousemove', this);
+    toggleEvent(Slider.hasTouched ? 'touchend' : 'mouseup', this);
     if (state) this.setAttribute('dragging', '');
     else this.removeAttribute('dragging');
   }
@@ -810,7 +806,8 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   }
 
   private createKnobElement(knobIndex: number) {
-    const { handleEvent } = this;
+    const passiveHandleEvent = { handleEvent: (e: Event) => this.handleEvent(e), passive: true };
+    const handleEvent = this as EventListenerObject;
     const isAltKnob = knobIndex % 2 ? 'alt-knob' : '';
     return this.createElement(
       html`
@@ -824,7 +821,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
           @mousedown="${handleEvent}"
           @mouseenter="${handleEvent}"
           @mouseleave="${handleEvent}"
-          @touchstart="${handleEvent}"
+          @touchstart="${passiveHandleEvent}"
         ></div>
       `
     );
