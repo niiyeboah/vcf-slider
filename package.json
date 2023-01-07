@@ -1,6 +1,6 @@
 {
   "name": "@vaadin-component-factory/vcf-slider",
-  "version": "23.3.0",
+  "version": "23.3.1",
   "description": "Range slider web component for the Vaadin platform.",
   "main": "out-tsc/vcf-slider.js",
   "module": "out-tsc/vcf-slider.js",
