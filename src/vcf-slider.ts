@@ -320,6 +320,10 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
         transform: translate(var(--vcf-slider-ticks-padding), 0);
       }
 
+      #ticks text {
+        text-anchor: middle;
+      }
+
       /* VERTICAL TICKS */
 
       :host([vertical][ticks]) #container {
@@ -336,6 +340,10 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
         height: 100%;
         margin: 0 var(--lumo-space-s) 0 0;
         order: 0;
+      }
+
+      :host([vertical]) #ticks text {
+        text-anchor: end;
       }
     `;
   }
@@ -386,7 +394,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       else this.setValue();
     }
 
-    if (props.has('ticks') || props.has('rtl')) {
+    if (props.has('ticks') || props.has('vertical') || props.has('rtl')) {
       this.setTicks();
     }
   }
@@ -411,13 +419,16 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
 
   private setTicks() {
     if (this.ticks) {
-      this.createTicks();
-      // Set ticks padding
-      const maxTickBounds = this.maxTickElement.getBoundingClientRect();
-      const ticksPadding = maxTickBounds.width / 2;
-      this.style.setProperty('--vcf-slider-ticks-padding', `${ticksPadding}px`);
-      // Reset ticks with new padding
-      this.createTicks();
+      this.$ticks.innerHTML = '';
+      requestAnimationFrame(() => {
+        this.createTicks();
+        // Set ticks padding
+        const maxTickBounds = this.maxTickElement.getBoundingClientRect();
+        const ticksPadding = maxTickBounds.width / 2;
+        this.style.setProperty('--vcf-slider-ticks-padding', `${ticksPadding}px`);
+        // Reset ticks with new padding
+        this.createTicks();
+      });
     }
   }
 
