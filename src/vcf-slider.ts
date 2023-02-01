@@ -214,6 +214,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
         pointer-events: none;
         user-select: none;
         transition: opacity 0.3s;
+        line-height: 1.15;
       }
 
       [part~='tooltip-triangle'] {
