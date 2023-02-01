@@ -52,7 +52,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   @property({ type: Boolean, reflect: true }) rtl = false;
 
   /** Current value(s) of the slider. */
-  @property({ type: Number }) value: string | number | number[] = 0;
+  @property({ type: String }) value: string | number | number[] = 0;
 
   /** Number of ranges (knobs) to display on the slider. */
   @property({ type: Number }) ranges = 0;
@@ -388,7 +388,7 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
 
     if (props.has('ranges') || props.has('min') || props.has('max')) {
       this.setKnobElements();
-      const newValue = this.initialValue.map((_, i) => this.values[i] || this.initialValue[i]);
+      const newValue = this.initialValue.map((_, i) => this.values[i] ?? this.initialValue[i]);
       this.setValue((this.value = newValue));
     }
 
