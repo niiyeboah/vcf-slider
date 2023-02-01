@@ -573,14 +573,16 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   }
 
   private setValue(values = this.values) {
-    this.setTooltipValues(values);
-    this.knobIndexes.forEach(i => {
-      this.setAriaValues(i, values);
-      this.setTooltipPosition(i, values);
-      this.setKnobPostion(i, values);
-      this.setBackgroundColors(values);
+    requestAnimationFrame(() => {
+      this.setTooltipValues(values);
+      this.knobIndexes.forEach(i => {
+        this.setAriaValues(i, values);
+        this.setTooltipPosition(i, values);
+        this.setKnobPostion(i, values);
+        this.setBackgroundColors(values);
+      });
+      this.dispatchEvent(this.valueChangedEvent);
     });
-    this.dispatchEvent(this.valueChangedEvent);
   }
 
   private setKnobPostion(i = 0, values = this.initialValue) {
