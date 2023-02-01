@@ -388,7 +388,8 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
 
     if (props.has('ranges') || props.has('min') || props.has('max')) {
       this.setKnobElements();
-      this.setValue((this.value = this.initialValue));
+      const newValue = this.initialValue.map((_, i) => this.values[i] || this.initialValue[i]);
+      this.setValue((this.value = newValue));
     }
 
     if (props.has('value') || props.has('vertical') || props.has('rtl')) {
@@ -573,16 +574,14 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
   }
 
   private setValue(values = this.values) {
-    requestAnimationFrame(() => {
-      this.setTooltipValues(values);
-      this.knobIndexes.forEach(i => {
-        this.setAriaValues(i, values);
-        this.setTooltipPosition(i, values);
-        this.setKnobPostion(i, values);
-        this.setBackgroundColors(values);
-      });
-      this.dispatchEvent(this.valueChangedEvent);
+    this.setTooltipValues(values);
+    this.knobIndexes.forEach(i => {
+      this.setAriaValues(i, values);
+      this.setTooltipPosition(i, values);
+      this.setKnobPostion(i, values);
+      this.setBackgroundColors(values);
     });
+    this.dispatchEvent(this.valueChangedEvent);
   }
 
   private setKnobPostion(i = 0, values = this.initialValue) {
@@ -630,7 +629,9 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
     let colors = '';
     let prevStop = '';
     const color = (i: number) => (i % 2 ? lineColor : knobs > 3 ? 'transparent' : altLineColor);
-    values.forEach((value, i) => {
+    const indexes = Array.from({ length: knobs }, (_, i) => i);
+    indexes.forEach(i => {
+      const value = values[i];
       const adjustedValue = value - min < 0 ? 0 : value - min;
       const stop = `${(adjustedValue / length) * 100}%`;
       if (i === 0) colors += `${knobs === 1 ? lineColor : 'transparent'} ${stop}, `;
