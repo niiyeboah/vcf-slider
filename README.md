@@ -6,7 +6,7 @@ Range slider web component for the Vaadin platform.
 
 <img src="https://user-images.githubusercontent.com/3392815/121072109-746c0900-c7d9-11eb-8d4e-8bb728fa99f1.png" alt="drawing" width="420"/>
 
-[Live demo ↗](https://vcf-slider.netlify.com) | [API documentation ↗](https://vcf-slider.netlify.com/api/#/elements/Vaadin.VcfSlider)
+[DEMO ↗](https://vcf-slider.netlify.com)
 
 ## Installation
 
