@@ -1,4 +1,6 @@
 import { html, svg, css, PropertyValues, LitElement, render, TemplateResult, nothing } from 'lit';
+import { when } from 'lit/directives/when.js';
+import { ifDefined } from 'lit/directives/if-defined.js';
 import { query, property, customElement } from 'lit/decorators.js';
 import { CustomEventMixin, CustomEvents, ValueChangedEvent } from './mixins/CustomEventMixin';
 import { ThemableMixin } from '@vaadin/vaadin-themable-mixin';
@@ -65,6 +67,9 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
 
   /** Maximum value. */
   @property({ type: Number }) max = 100;
+
+  /** Label. */
+  @property({ type: String }) label = 'Slider';
 
   @query('#knobs') private $knobsContainer!: HTMLElement;
   @query('#container') private $container!: HTMLElement;
@@ -142,6 +147,11 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
         height: var(--l-height);
         border-radius: var(--lumo-border-radius-m);
         background-color: var(--lumo-contrast-30pct);
+      }
+
+      #slider {
+        display: flex;
+        flex-flow: column;
       }
 
       #line-color {
@@ -246,11 +256,14 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       }
 
       :host([vertical]) {
-        display: inline-flex;
-        flex-flow: row;
         width: max-content;
         margin: 0 var(--lumo-space-s);
         height: var(--vcf-slider-vertical-height);
+      }
+
+      :host([vertical]) #slider {
+        display: inline-flex;
+        flex-flow: row;
       }
 
       :host([vertical]) #container {
@@ -347,21 +360,45 @@ export class Slider extends CustomEventMixin(ThemableMixin(LitElement)) {
       :host([vertical]) #ticks text {
         text-anchor: end;
       }
+
+      /* LABEL */
+
+      label {
+        align-self: flex-start;
+        color: var(--lumo-secondary-text-color);
+        font-weight: 500;
+        font-size: var(--lumo-font-size-s);
+        margin-left: calc(var(--lumo-border-radius-m) / 4);
+        transition: color 0.2s;
+        line-height: 1;
+        padding-right: 1em;
+        padding-bottom: 0.8em;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        position: relative;
+      }
     `;
   }
 
   render() {
     return html`
-      <div id="container" part="container">
-        <div id="knobs" part="knobs"></div>
-      </div>
-      ${this.ticks
-        ? svg`
+      ${when(
+        this.label,
+        () => html`<label slot="label" aria-label="${ifDefined(this.label)}" for="slider">${this.label}</label>`
+      )}
+      <div id="slider" tabindex="0">
+        <div id="container" part="container">
+          <div id="knobs" part="knobs"></div>
+        </div>
+        ${this.ticks
+          ? svg`
           <svg id="ticks-container" part="ticks-container">
             <g id="ticks" part="ticks"></g>
           </svg>
         `
-        : nothing}
+          : nothing}
+      </div>
     `;
   }
 
